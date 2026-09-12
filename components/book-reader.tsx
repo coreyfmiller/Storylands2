@@ -73,7 +73,9 @@ export function BookReader({ book }: { book: Book }) {
     return () => window.removeEventListener("keydown", onKey)
   }, [go])
 
-  // Touch swipe — works on EVERY stage (cover, page, end). We track both axes so a
+  // Touch swipe — ONLY on story pages (index 0..total-1). Never on the cover or end card:
+  // those screens have their own full-screen tap button, and letting the frame's swipe also
+  // fire there caused a double-navigation (cover <-> page 1 bounce). We track both axes so a
   // vertical scroll or a plain tap is never mistaken for a horizontal page-turn.
   const touchStart = useRef<{ x: number; y: number } | null>(null)
   const onTouchStart = (e: React.TouchEvent) => {
@@ -84,11 +86,13 @@ export function BookReader({ book }: { book: Book }) {
     const start = touchStart.current
     touchStart.current = null
     if (!start) return
+    // Only story pages accept swipe. Cover (-1) and end (>= total) are tap-only.
+    if (index < 0 || index >= total) return
     const t = e.changedTouches[0]
     const dx = t.clientX - start.x
     const dy = t.clientY - start.y
     // Require a clearly horizontal gesture: enough distance AND more horizontal than vertical.
-    if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
       go(dx < 0 ? 1 : -1)
     }
   }
