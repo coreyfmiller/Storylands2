@@ -121,7 +121,7 @@ const rawBook: Book = {
     },
     {
       page: 5,
-      text: `So he made a plan.\n\nHe buried a plain acorn as a decoy. He buried a second decoy to guard the first one. He drew a map so he would remember, then hid the map.\n\nThen, because a map can be stolen, he drew a second map that was wrong on purpose.`,
+      text: `So he made a plan.\n\nHe buried a decoy acorn. Then a second decoy, to guard the first. He drew a map to remember, then hid the map.\n\nThen, since a map can be stolen, he drew a second map that was wrong on purpose.`,
       art: '',
       manifest: {
         charactersPresent: ['nibs'],
@@ -211,7 +211,7 @@ const rawBook: Book = {
     },
     {
       page: 11,
-      text: `But the Absolutely Perfect Acorn was not perfect anymore.\n\nA small pale root had split the shell. It had started, quietly, to grow.\n\nNibs reached out to pull the root away.\n\nAnd then he stopped.`,
+      text: `But the Absolutely Perfect Acorn was not perfect anymore. A small pale root had split the shell. It had started, quietly, to grow.\n\nNibs reached out to pull the root away.\n\nAnd then he stopped.`,
       art: '',
       manifest: {
         charactersPresent: ['nibs'],
@@ -241,17 +241,32 @@ const rawBook: Book = {
     },
     {
       page: 13,
-      text: `By morning, the sprout had a fence around it. And a gate. And a second, smaller fence, just in case.\n\n"It's not an acorn anymore," said Nibs proudly. "It's mine to look after now."\n\nTilly smiled. This time Nibs wasn't hiding something away — he was helping it grow.\n\nAnd every morning after, the two friends came to watch their little tree reach higher toward the sun.`,
+      text: `By morning, the sprout had a fence around it. And a gate. And a second, smaller fence, just in case.\n\n"It's not an acorn anymore," said Nibs proudly. "It's mine to look after now."`,
       art: '',
       manifest: {
         charactersPresent: ['nibs', 'tilly'],
         location: 'the clearing next morning, a small fenced-off patch of earth with the sprout',
         timeOfDay: 'bright, hopeful morning',
         action: 'Nibs stands guard proudly beside a tiny sprout he has ringed with an absurdly elaborate little twig fence (with a tiny gate, and a second smaller fence inside the first); Tilly watches from a branch with a warm, happy expression, the two clearly friends',
-        emotionalBeat: 'warm, complete, happy ending: he is still lovably himself, but he has grown — and the friendship and the future feel bright',
+        emotionalBeat: 'affectionate comic callback: he is still lovably himself, but this time he is proudly caring for it, not hiding it',
         requiredVisualFacts: ['a tiny green sprout in a patch of earth', 'an absurdly elaborate little twig fence ringing the sprout (a tiny gate, and a second smaller fence inside the first)', 'Nibs standing guard proudly', 'Tilly watching with a knowing, amused expression'],
         forbiddenVisualFacts: ['frightening or dark imagery', 'human characters', 'Nibs wearing clothing', 'readable words or letters anywhere in the image', 'any sign, signpost, board, placard, or plaque', 'a fully grown tree'],
         composition: 'morning light, comic reversal; Nibs proudly guarding the over-fenced sprout, Tilly observing from a branch',
+      },
+    },
+    {
+      page: 14,
+      text: `Tilly smiled. This time, Nibs wasn't hiding something away.\n\nHe was helping it grow.\n\nAnd every morning after, the two friends came to watch their little tree reach a little higher toward the sun.`,
+      art: '',
+      manifest: {
+        charactersPresent: ['nibs', 'tilly'],
+        location: 'the clearing over following days, the little sprout now a small leafy seedling a few inches tall',
+        timeOfDay: 'warm golden morning',
+        action: 'Nibs and Tilly sit together beside the little seedling, looking at it fondly as it reaches upward; the mood is peaceful, warm, and hopeful, the two clearly close friends',
+        emotionalBeat: 'the warm, complete, happy ending: growth, friendship, and a bright future',
+        requiredVisualFacts: ['a small healthy green seedling a few inches tall growing from the earth', 'Nibs and Tilly together beside it looking at it fondly', 'warm hopeful golden light', 'a sense of calm and friendship'],
+        forbiddenVisualFacts: ['frightening or dark imagery', 'human characters', 'Nibs wearing clothing', 'readable words or letters anywhere in the image', 'any sign, signpost, board, placard, or plaque', 'a fully grown tree'],
+        composition: 'gentle, open, warm final image; the two friends and the growing seedling share the frame, sky and light suggesting a hopeful future',
       },
     },
   ],

@@ -55,13 +55,24 @@ controls clear the phone's home indicator.
 
 ## Authoring implication (page length)
 
-Because text must fit at a large size with no scroll, write picture-book pages SHORT:
-- Aim for roughly 1-3 short sentences per page (about 12-45 words).
-- A page that needs four+ paragraphs is two pages, not one.
-- Prefer more, shorter pages over fewer, dense ones. Turning the page is part of the rhythm.
+Because text must fit at a large size with no scroll, write picture-book pages SHORT and keep
+their length CONSISTENT so the type size stays roughly the same from page to page.
 
-When generating or editing a book, treat "does every page fit large with no scroll?" as an
-acceptance check, the same way we treat character visual consistency.
+Per-page word budget (measured, enforced):
+- **Target ~35 words per page.** The comfortable band is about **18-45 words**.
+- **Hard ceiling ~50 words** (and never more than 3 short paragraphs). A page over ~50 words,
+  or needing 4+ paragraphs, is TWO pages — split it. (Story Zero's original last page was 67
+  words / 4 paragraphs and overflowed on mobile; splitting it into two ~34-word pages fixed it
+  and added a dedicated final image.)
+- Keep pages within a tight range of each other. Wildly uneven pages make the auto-fit size
+  jump around between turns, which feels cheap. Even, consistent lengths read premium.
+- Prefer more, shorter pages over fewer, dense ones. Turning the page is part of the rhythm,
+  and a new page can earn its own illustration (maximize both text and image).
+
+Acceptance check for every book: run `node scripts/audit-text.mjs` and confirm max words ≤ ~50
+and the spread is tight. Treat "does every page fit large with no scroll, at a consistent
+size?" as a gate, the same way we treat character visual consistency. Auto-fit is a safety
+net, not a license to overwrite a long page.
 
 ## Format
 
