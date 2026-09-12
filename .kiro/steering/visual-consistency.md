@@ -98,11 +98,26 @@ QA returns a structured result (pass/score/issues). Failing images are regenerat
 shipped. For early experiments it is acceptable to show QA results to a human reviewer rather
 than auto-regenerate, but the gate must exist.
 
+## No in-image text and no signage (hard rule)
+
+Two simple, non-negotiable rules for every illustration:
+
+1. **No text in the image** — no words, letters, numbers, or titles painted into the art.
+   Story words live only in the reader's text panel.
+2. **No signage of any kind** — no signs, signposts, boards, placards, plaques, or labels,
+   even blank ones. A blank board looks like the art broke; a lettered one breaks rule 1.
+
+If a beat seems to need a sign or label, redesign the beat around something that reads with
+zero words, and put the meaning in the read-aloud text. Add "any text; any sign, signpost,
+board, placard, or plaque" to each page's `forbiddenVisualFacts` so the generator never
+reintroduces it.
+
 ## Format and output rules
 
 - Story-page master canvas: 9:16 portrait, 1080x1920, full-bleed, sRGB. Keep important
   content in the central safe zone (top/bottom may be covered by UI or captions).
-- Interiors are TEXTLESS. Story words are an overlay layer, never painted into the image.
+- Interiors are TEXTLESS and SIGNAGE-FREE (see the hard rule above). Story words are an
+  overlay layer, never painted into the image; no signs/labels even when blank.
 - Character reference sheets are textless on a plain background.
 - Every generated asset stores provenance: provider, model, timestamp, manifest version,
   visual-bible version, prompt-compiler version, reference images used, the compiled prompt,
