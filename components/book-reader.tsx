@@ -187,8 +187,10 @@ export function BookReader({ book }: { book: Book }) {
         {/* PAGE — illustration on top, warm parchment text panel below (Option A). */}
         {stage === "page" && page && (
           <div key={page.page} className="absolute inset-0 flex flex-col bg-[#f4e9d6] animate-fade-in">
-            {/* Illustration region (top). Uses the image's own space; art is not cropped away. */}
-            <div className="relative min-h-0 flex-[9] overflow-hidden bg-black">
+            {/* Illustration region (top). object-contain shows the WHOLE illustration — never
+                crop the art (a cut-off head is worse than a small margin). The warm parchment
+                background makes any letterbox margin blend into the page instead of black bars. */}
+            <div className="relative min-h-0 flex-[11] overflow-hidden bg-[#f4e9d6]">
               {page.art ? (
                 <Image
                   src={`/${page.art}`}
@@ -196,21 +198,18 @@ export function BookReader({ book }: { book: Book }) {
                   fill
                   priority
                   sizes="(max-height: 100svh) 56svh"
-                  className="object-cover"
+                  className="object-contain"
                 />
               ) : (
                 <div className="absolute inset-0 grid place-items-center bg-neutral-900 text-white/40">
                   <span className="text-sm">illustration pending</span>
                 </div>
               )}
-
-              {/* soft blend into the parchment panel */}
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[#f4e9d6] to-transparent" />
             </div>
 
             {/* Text panel (bottom): warm paper, serif. Text auto-fits — always large, never scrolls.
                 Extra bottom padding keeps prose clear of the on-screen controls. */}
-            <div className="relative z-20 flex-[11] overflow-hidden bg-[#f4e9d6] px-6 pt-5 pb-20">
+            <div className="relative z-20 flex-[9] overflow-hidden bg-[#f4e9d6] px-6 pt-5 pb-20">
               <AutoFitText text={page.text} />
             </div>
           </div>

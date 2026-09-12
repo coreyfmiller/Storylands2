@@ -31,8 +31,13 @@ serves that.
 ## Layout
 
 - Each page is a vertical split: illustration on top, warm parchment text panel below.
-- The illustration is never cropped to make room for text; the split gives text its own space.
-- Split is roughly 45% image / 55% text on a phone, tuned so large text fits without scrolling.
+- **The illustration is NEVER cropped.** Show the whole picture — use `object-contain`, never
+  `object-cover`, for page art. A cut-off head or a chopped scene is a defect; a small
+  letterbox margin is fine. The image region's background matches the parchment (#f4e9d6) so
+  any margin blends into the page instead of showing black bars.
+- Split is roughly 55% image / 45% text on a phone (image `flex-[11]`, text `flex-[9]`), so the
+  tall 9:16 art shows large and uncropped while the short text still fits at a large size with
+  no scroll. Because our text is short (~35 words), the image gets the larger share.
 - Minimal chrome: a close control and a thin progress bar at the top. Nothing else competes.
 
 ## Mobile interaction (phone-first — all three must work)
