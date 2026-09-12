@@ -15,7 +15,7 @@ import { StoryRow } from "@/components/story-row"
 import { SeriesRow } from "@/components/series-row"
 import { Modal } from "@/components/modal"
 import { StoryDetail } from "@/components/story-detail"
-import { ReaderPreview } from "@/components/reader-preview"
+import { ComingSoon } from "@/components/coming-soon"
 import { SearchOverlay } from "@/components/search-overlay"
 import { ParentFooter } from "@/components/parent-footer"
 import { storyById } from "@/lib/catalog"
@@ -24,7 +24,7 @@ export function StorylandsApp() {
   const router = useRouter()
   const [active, setActive] = useState<Profile>(profiles[0]) // Avery · 6 (ages 4–7)
   const [detail, setDetail] = useState<Story | null>(null)
-  const [reader, setReader] = useState<Story | null>(null)
+  const [comingSoon, setComingSoon] = useState<Story | null>(null)
   const [searchOpen, setSearchOpen] = useState(false)
 
   const selectProfile = useCallback((p: Profile) => {
@@ -50,8 +50,9 @@ export function StorylandsApp() {
         router.push(`/read/${s.readerSlug}`)
         return
       }
-      // Not-yet-built stories fall back to the sample preview.
-      setReader(s)
+      // Not-yet-built stories show an honest "coming soon" (Storylands books are linear
+      // picture books — never a choose-your-own-adventure placeholder).
+      setComingSoon(s)
     },
     [router],
   )
@@ -105,7 +106,7 @@ export function StorylandsApp() {
         )}
       </Modal>
 
-      <ReaderPreview story={reader} onClose={() => setReader(null)} />
+      <ComingSoon story={comingSoon} onClose={() => setComingSoon(null)} />
 
       <SearchOverlay
         open={searchOpen}
