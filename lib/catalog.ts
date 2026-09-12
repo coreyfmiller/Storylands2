@@ -599,6 +599,37 @@ const shelfDefs: ShelfDef[] = [
   },
 ]
 
+// Below this many titles in a profile's band(s), the Netflix-style recommendation rows are
+// pure redundancy — every row surfaces nearly the same handful of books under a different
+// heading. Until the catalog is large enough for rows to be genuinely distinct, we show a
+// single big cover grid instead. The full shelf engine stays wired and turns on automatically
+// once a band crosses this threshold.
+export const RICH_SHELVES_THRESHOLD = 20
+
+export function poolForProfile(p: Profile): Story[] {
+  return stories.filter((s) => p.bands.includes(s.band))
+}
+
+export function shouldUseRichShelves(p: Profile): boolean {
+  return poolForProfile(p).length >= RICH_SHELVES_THRESHOLD
+}
+
+// The books a profile can actually read right now (built = has a reader route), for the hero
+// rotation and the library grid ordering (built first, then coming-soon).
+export function libraryForProfile(p: Profile): Story[] {
+  const pool = poolForProfile(p)
+  const built = pool.filter((s) => s.readerSlug)
+  const comingSoon = pool.filter((s) => !s.readerSlug)
+  return [...built, ...comingSoon]
+}
+
+// Hero rotation candidates: built books in the band (fall back to whole pool if none built).
+export function heroRotationForProfile(p: Profile): Story[] {
+  const pool = poolForProfile(p)
+  const built = pool.filter((s) => s.readerSlug)
+  return built.length > 0 ? built : pool
+}
+
 export function shelvesForProfile(p: Profile): Shelf[] {
   const pool = stories.filter((s) => p.bands.includes(s.band))
   const shelves: Shelf[] = []
