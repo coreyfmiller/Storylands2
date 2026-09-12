@@ -36,26 +36,36 @@ export function StoryDetail({
   return (
     <div className="overflow-hidden rounded-none bg-card shadow-2xl sm:rounded-xl">
       {paintedCover ? (
-        <div className="relative w-full bg-black">
+        <button
+          type="button"
+          onClick={() => onBegin(story)}
+          aria-label={resuming ? `Continue ${story.title}` : `Begin ${story.title}`}
+          className="group relative block w-full cursor-pointer bg-black"
+        >
           <div className="relative mx-auto aspect-[9/16] max-h-[62svh] w-auto">
             <Image
               src={story.portrait || story.landscape || "/placeholder.svg"}
               alt={`Cover for ${story.title}`}
               fill
               sizes="(min-width: 640px) 360px, 100vw"
-              className="object-contain"
+              className="object-contain transition-transform duration-500 group-hover:scale-[1.02]"
             />
           </div>
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-card to-transparent" />
-        </div>
+        </button>
       ) : (
-        <div className="relative aspect-[16/10] w-full sm:aspect-[16/8]">
+        <button
+          type="button"
+          onClick={() => onBegin(story)}
+          aria-label={resuming ? `Continue ${story.title}` : `Begin ${story.title}`}
+          className="group relative block aspect-[16/10] w-full cursor-pointer text-left sm:aspect-[16/8]"
+        >
           <Image
             src={story.landscape || "/placeholder.svg"}
             alt={`Key art for ${story.title}`}
             fill
             sizes="(min-width: 640px) 640px, 100vw"
-            className="object-cover"
+            className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-card via-card/40 to-transparent" />
           <div
@@ -70,7 +80,7 @@ export function StoryDetail({
               {story.title}
             </h2>
           </div>
-        </div>
+        </button>
       )}
 
       <div className="p-5 sm:p-8">
