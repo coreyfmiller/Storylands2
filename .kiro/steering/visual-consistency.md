@@ -114,8 +114,12 @@ reintroduces it.
 
 ## Format and output rules
 
-- Story-page master canvas: 9:16 portrait, 1080x1920, full-bleed, sRGB. Keep important
-  content in the central safe zone (top/bottom may be covered by UI or captions).
+- Story-page master canvas: 9:16 portrait, 1080x1920, full-bleed, sRGB.
+- ABSOLUTE: the reader displays page art full-bleed with `object-cover`, which CROPS to fill.
+  So keep ALL important content — heads, ears, faces, the key action — well inside a central
+  safe zone with generous margin/headroom; nothing important near any edge. Assume the top and
+  bottom edges may be cropped. A subject touching an edge is a defect (it will clip). If a
+  generated page clips, regenerate it with more margin — never letterbox the reader instead.
 - Interiors are TEXTLESS and SIGNAGE-FREE (see the hard rule above). Story words are an
   overlay layer, never painted into the image; no signs/labels even when blank.
 - Character reference sheets are textless on a plain background.

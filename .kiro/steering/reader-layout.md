@@ -31,13 +31,18 @@ serves that.
 ## Layout
 
 - Each page is a vertical split: illustration on top, warm parchment text panel below.
-- **The illustration is NEVER cropped.** Show the whole picture — use `object-contain`, never
-  `object-cover`, for page art. A cut-off head or a chopped scene is a defect; a small
-  letterbox margin is fine. The image region's background matches the parchment (#f4e9d6) so
-  any margin blends into the page instead of showing black bars.
-- Split is roughly 55% image / 45% text on a phone (image `flex-[11]`, text `flex-[9]`), so the
-  tall 9:16 art shows large and uncropped while the short text still fits at a large size with
-  no scroll. Because our text is short (~35 words), the image gets the larger share.
+- **ABSOLUTE RULE — the illustration ALWAYS fills the top region edge-to-edge (full-bleed).**
+  Page art uses `object-cover`, never `object-contain`. No letterbox bars, no floating boxed
+  image, no margins around the art. The image must fill its region completely, like page 1 of
+  the Oliver book. This is not a preference; do not change it back to `object-contain`.
+- **Consequence (also absolute): `object-cover` crops to fill, so page art MUST be authored and
+  generated with the main subject centered and with generous margin/headroom around it** — so
+  nothing important (a head, ears, the key action) sits near an edge where it can clip. If a
+  page clips badly, the fix is to REGENERATE that page's art with more margin, never to switch
+  the reader to `object-contain`. Add "keep the subject centered with margin/headroom; nothing
+  important near the edges" to page composition notes.
+- Split is roughly 45% image / 55% text on a phone (image `flex-[9]`, text `flex-[11]`), giving
+  a bold full-bleed image band on top and room for large, no-scroll text below.
 - Minimal chrome: a close control and a thin progress bar at the top. Nothing else competes.
 
 ## Mobile interaction (phone-first — all three must work)
