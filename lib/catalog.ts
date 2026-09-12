@@ -58,11 +58,8 @@ export const stories: Story[] = [
     synopsis:
       "It's the night of the Lantern Festival, when every dragon lights a lantern with their own fire. Every dragon but Pip, who can only make smoke. But when Pip finds someone small and frightened in the dark, he discovers that the warmest flames don't come from trying harder — they come from a big heart.",
     readerSlug: "pip-first-flame",
-    // Pip always uses its own painted cover for cards; the featured hero banner uses a
-    // separate textless landscape so Pip's art is never stretched into the wide hero.
     landscape: "/characters/pip.png",
     portrait: "/characters/pip.png",
-    heroImage: "/characters/hero.png",
     ages: "Ages 4+",
     targetAge: 5,
     band: "young",

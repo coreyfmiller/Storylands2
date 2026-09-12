@@ -64,7 +64,7 @@ export function Hero({
       {isFirefly && <Fireflies />}
 
       <div className="relative w-full px-4 pb-10 pt-24 sm:px-6 sm:pb-12 lg:px-10">
-        <div className="flex items-center gap-6 sm:gap-10">
+        <div className="flex items-center">
           <div className="max-w-xl animate-fade-up">
             <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.32em] text-primary">
               {story.kicker}
@@ -96,27 +96,6 @@ export function Hero({
               </button>
             </div>
           </div>
-
-          {/* The painted book cover, shown beside the key art. Tapping it begins the story.
-              Hidden on the smallest screens so the headline stays the focus. */}
-          {story.portrait && (
-            <button
-              key={`cover-${story.id}`}
-              onClick={() => onBegin(story)}
-              aria-label={`Begin ${story.title}`}
-              className="group relative hidden shrink-0 animate-fade-up sm:block"
-            >
-              <div className="relative aspect-[9/16] w-[150px] overflow-hidden rounded-lg shadow-2xl ring-1 ring-white/20 transition-transform duration-500 group-hover:-translate-y-1 group-hover:scale-[1.03] lg:w-[190px]">
-                <Image
-                  src={story.portrait}
-                  alt={story.title}
-                  fill
-                  sizes="(min-width: 1024px) 190px, 150px"
-                  className="object-cover"
-                />
-              </div>
-            </button>
-          )}
         </div>
 
         {/* Rotation dots */}

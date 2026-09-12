@@ -6,14 +6,12 @@ import type { Profile, Story } from "@/lib/catalog"
 import {
   profiles,
   shelvesForProfile,
-  continueForProfile,
   shouldUseRichShelves,
   libraryForProfile,
   heroRotationForProfile,
 } from "@/lib/catalog"
 import { SiteNav } from "@/components/site-nav"
 import { Hero } from "@/components/hero"
-import { ContinueRow } from "@/components/continue-row"
 import { StoryRow } from "@/components/story-row"
 import { SeriesRow } from "@/components/series-row"
 import { LibraryGrid } from "@/components/library-grid"
@@ -53,11 +51,6 @@ export function StorylandsApp() {
     }, 7000)
     return () => clearInterval(t)
   }, [heroRotation])
-
-  const isResuming = useCallback(
-    (s: Story) => continueForProfile(active).some((c) => c.story.id === s.id),
-    [active],
-  )
 
   const openDetail = useCallback((s: Story) => setDetail(s), [])
   const openReader = useCallback(
@@ -103,8 +96,6 @@ export function StorylandsApp() {
         />
 
         <div className="relative z-10 -mt-12 pb-8">
-          <ContinueRow profile={active} onResume={openReader} />
-
           {richShelves ? (
             // Large catalog: the full Netflix-style recommendation rows (distinct per row).
             <>
@@ -138,7 +129,7 @@ export function StorylandsApp() {
         {detail && (
           <StoryDetail
             story={detail}
-            resuming={isResuming(detail)}
+            resuming={false}
             onBegin={openReader}
             onOpen={openDetail}
           />
