@@ -102,7 +102,7 @@ export function StorylandsApp() {
           }}
         />
 
-        <div className="relative z-10 -mt-8 pb-8">
+        <div className="relative z-10 -mt-12 pb-8">
           <ContinueRow profile={active} onResume={openReader} />
 
           {richShelves ? (

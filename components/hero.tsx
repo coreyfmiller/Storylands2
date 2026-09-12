@@ -36,7 +36,7 @@ export function Hero({
       ref={frame}
       onPointerMove={onMove}
       onPointerLeave={() => setOffset({ x: 0, y: 0 })}
-      className="relative isolate flex min-h-[86svh] items-end overflow-hidden sm:min-h-[88svh]"
+      className="relative isolate flex min-h-[68svh] items-center overflow-hidden sm:min-h-[74svh]"
     >
       <div
         key={story.id}
@@ -63,8 +63,8 @@ export function Hero({
 
       {isFirefly && <Fireflies />}
 
-      <div className="relative w-full px-4 pb-14 pt-28 sm:px-6 sm:pb-20 lg:px-10">
-        <div className="flex items-end gap-6 sm:gap-10">
+      <div className="relative w-full px-4 pb-10 pt-24 sm:px-6 sm:pb-12 lg:px-10">
+        <div className="flex items-center gap-6 sm:gap-10">
           <div className="max-w-xl animate-fade-up">
             <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.32em] text-primary">
               {story.kicker}
