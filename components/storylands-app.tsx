@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
 import type { Profile, Story } from "@/lib/catalog"
 import {
   profiles,
@@ -20,6 +21,7 @@ import { ParentFooter } from "@/components/parent-footer"
 import { storyById } from "@/lib/catalog"
 
 export function StorylandsApp() {
+  const router = useRouter()
   const [active, setActive] = useState<Profile>(profiles[0]) // Avery · 6 (ages 4–7)
   const [detail, setDetail] = useState<Story | null>(null)
   const [reader, setReader] = useState<Story | null>(null)
@@ -39,11 +41,20 @@ export function StorylandsApp() {
   )
 
   const openDetail = useCallback((s: Story) => setDetail(s), [])
-  const openReader = useCallback((s: Story) => {
-    setDetail(null)
-    setSearchOpen(false)
-    setReader(s)
-  }, [])
+  const openReader = useCallback(
+    (s: Story) => {
+      setDetail(null)
+      setSearchOpen(false)
+      // Real, built books have a linear 9:16 reader route. Go there.
+      if (s.readerSlug) {
+        router.push(`/read/${s.readerSlug}`)
+        return
+      }
+      // Not-yet-built stories fall back to the sample preview.
+      setReader(s)
+    },
+    [router],
+  )
 
   // Split shelves so Series sits between discovery rows
   const midpoint = Math.min(3, shelves.length)

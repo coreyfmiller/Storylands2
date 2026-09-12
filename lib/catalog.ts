@@ -10,6 +10,12 @@ export type Story = {
   portrait?: string
   /** Optional dedicated full-bleed hero banner art (textless, 16:9). Falls back to landscape. */
   heroImage?: string
+  /**
+   * Slug of a real, built linear reader at /read/<readerSlug>. When present, "Begin Story"
+   * navigates to the actual 9:16 picture-book reader. When absent, the story is not yet
+   * built and falls back to the sample preview. Storylands books are linear, not CYOA.
+   */
+  readerSlug?: string
   ages: string
   targetAge: number
   band: Band
@@ -122,19 +128,20 @@ export const stories: Story[] = [
   },
   {
     id: "nibs",
-    title: "Nibs Saves the Crumbs",
-    kicker: "A Storylands Original — placeholder",
-    hook: "The smallest one in the house has the biggest plan of all.",
+    title: "Nibs and the Absolutely Perfect Acorn",
+    kicker: "A Storylands Original",
+    hook: "Nibs found the perfect acorn. Keeping it safe is where the trouble starts.",
     synopsis:
-      "Placeholder story for Nibs. A tiny hero, a big kitchen, and a plan that only works if everyone helps. Rename and rewrite when the real Nibs book is ready.",
+      "Nibs is a squirrel with very high standards, and he has finally found the Absolutely Perfect Acorn. The only problem with a perfect thing is that now you can lose it — and Nibs is about to hide it so well that even he can't find it again.",
     landscape: "/characters/nibs.png",
     portrait: "/characters/nibs.png",
+    readerSlug: "nibs-perfect-acorn",
     ages: "Ages 4+",
     targetAge: 5,
     band: "young",
-    minutes: 8,
-    genres: ["Comedy", "Family"],
-    tags: ["funny", "family", "quick"],
+    minutes: 6,
+    genres: ["Comedy", "Heart"],
+    tags: ["funny", "heart", "quick"],
     glow: "oklch(0.82 0.12 74)",
     tint: "oklch(0.34 0.05 70)",
   },
