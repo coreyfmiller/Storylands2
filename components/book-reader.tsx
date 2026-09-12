@@ -139,6 +139,12 @@ export function BookReader({ book }: { book: Book }) {
         {/* COVER */}
         {stage === "cover" && (
           <div className="absolute inset-0 animate-fade-in">
+            {/* Tapping the cover art itself begins the story (not just the button). */}
+            <button
+              aria-label="Start reading"
+              onClick={() => setIndex(0)}
+              className="absolute inset-0 z-30 h-full w-full cursor-pointer"
+            />
             <Image
               src={`/${bookCover(book)}`}
               alt={book.title}
@@ -147,15 +153,15 @@ export function BookReader({ book }: { book: Book }) {
               sizes="(max-height: 100svh) 56svh"
               className="object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-black/50" />
-            <div className="absolute inset-x-0 bottom-0 flex flex-col items-center px-8 pb-16 text-center">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black via-black/30 to-black/50" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center px-8 pb-16 text-center">
               <h1 className="font-serif text-4xl font-medium leading-tight text-white text-shadow-cinema">
                 {book.title}
               </h1>
               <p className="mt-3 text-sm italic text-white/70">{book.subtitle}</p>
               <button
                 onClick={() => setIndex(0)}
-                className="mt-8 rounded-full bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground transition-transform active:scale-95"
+                className="pointer-events-auto relative z-40 mt-8 rounded-full bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground transition-transform active:scale-95"
               >
                 Start Reading
               </button>
