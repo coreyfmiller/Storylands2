@@ -241,14 +241,14 @@ const rawBook: Book = {
     },
     {
       page: 13,
-      text: `By morning, the little sprout had a fence around it. And a gate. And a second, smaller fence, just in case.\n\nTilly looked at the fences. Then at Nibs, standing guard over a sprout the size of her toe.\n\nHe had not changed quite as much as she had hoped.`,
+      text: `By morning, the sprout had a fence around it. And a gate. And a second, smaller fence, just in case.\n\n"It's not an acorn anymore," said Nibs proudly. "It's mine to look after now."\n\nTilly smiled. This time Nibs wasn't hiding something away — he was helping it grow.\n\nAnd every morning after, the two friends came to watch their little tree reach higher toward the sun.`,
       art: '',
       manifest: {
         charactersPresent: ['nibs', 'tilly'],
         location: 'the clearing next morning, a small fenced-off patch of earth with the sprout',
-        timeOfDay: 'morning',
-        action: 'Nibs stands guard proudly beside a tiny sprout he has ringed with an absurdly elaborate little twig fence (with a tiny gate, and a second smaller fence inside the first); Tilly watches from a branch with a knowing, amused look',
-        emotionalBeat: 'affectionate comic callback: he is still exactly himself',
+        timeOfDay: 'bright, hopeful morning',
+        action: 'Nibs stands guard proudly beside a tiny sprout he has ringed with an absurdly elaborate little twig fence (with a tiny gate, and a second smaller fence inside the first); Tilly watches from a branch with a warm, happy expression, the two clearly friends',
+        emotionalBeat: 'warm, complete, happy ending: he is still lovably himself, but he has grown — and the friendship and the future feel bright',
         requiredVisualFacts: ['a tiny green sprout in a patch of earth', 'an absurdly elaborate little twig fence ringing the sprout (a tiny gate, and a second smaller fence inside the first)', 'Nibs standing guard proudly', 'Tilly watching with a knowing, amused expression'],
         forbiddenVisualFacts: ['frightening or dark imagery', 'human characters', 'Nibs wearing clothing', 'readable words or letters anywhere in the image', 'any sign, signpost, board, placard, or plaque', 'a fully grown tree'],
         composition: 'morning light, comic reversal; Nibs proudly guarding the over-fenced sprout, Tilly observing from a branch',

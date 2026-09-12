@@ -40,6 +40,25 @@ piece to that bar.
 - Not gold-plating irrelevant things. Excellence is spent on what the reader actually
   experiences, not on invisible over-engineering.
 
+## Endings must land complete and happy (ages 4-7)
+
+The final page is the thing a child is left holding. For this audience it must give real
+closure and a warm, hopeful feeling. Non-negotiable for every Storylands book:
+
+- **Resolve the want.** The problem the story opened with is clearly settled by the end. No
+  ambiguity, no open loops, nothing left hanging for a young child to worry about.
+- **End happy and warm.** The last beat leaves the reader reassured and smiling. A clever,
+  wry, or bittersweet button is not enough on its own at this age — if the closing line is
+  dry or faintly negative ("he had not changed"), add a warm, forward-looking beat after it.
+- **Rest on the character we rooted for.** Keep the emotional camera on the protagonist and
+  their relationships at the end, not on a side character's judgment of them.
+- **Name the growth without preaching.** Show what changed for the better as part of the
+  story's own images and actions; never state the moral as a lesson.
+- **Look forward.** A gentle "and from then on..." note (the friendship continues, the thing
+  grows, tomorrow is bright) gives the "happily ever after" reassurance the age band wants.
+- Still obey every other rule: personality-true (the character is still themselves), fits
+  large with no scroll, no text/props in the art.
+
 ## The standing quality bar (apply to every deliverable)
 
 A Storylands book is only "done" when:
@@ -47,7 +66,8 @@ A Storylands book is only "done" when:
 - Every character is unmistakably on-model on every page (see visual-consistency steering).
 - No text is baked into illustrations; every page fits large with no scroll (see reader-layout).
 - The prose earns its emotion and never states the moral; the ending lands with a
-  personality-true final beat.
+  personality-true final beat AND gives complete, happy, forward-looking closure for ages
+  4-7 (see "Endings must land complete and happy").
 - Nothing on the page feels generic, preachy, or "AI-made."
 
 If it does not clear this bar, it is not finished, and I say so.
