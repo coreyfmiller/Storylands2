@@ -73,14 +73,24 @@ export function BookReader({ book }: { book: Book }) {
     return () => window.removeEventListener("keydown", onKey)
   }, [go])
 
-  // Touch swipe
-  const [touchX, setTouchX] = useState<number | null>(null)
-  const onTouchStart = (e: React.TouchEvent) => setTouchX(e.touches[0].clientX)
+  // Touch swipe — works on EVERY stage (cover, page, end). We track both axes so a
+  // vertical scroll or a plain tap is never mistaken for a horizontal page-turn.
+  const touchStart = useRef<{ x: number; y: number } | null>(null)
+  const onTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0]
+    touchStart.current = { x: t.clientX, y: t.clientY }
+  }
   const onTouchEnd = (e: React.TouchEvent) => {
-    if (touchX === null) return
-    const dx = e.changedTouches[0].clientX - touchX
-    if (Math.abs(dx) > 40) go(dx < 0 ? 1 : -1)
-    setTouchX(null)
+    const start = touchStart.current
+    touchStart.current = null
+    if (!start) return
+    const t = e.changedTouches[0]
+    const dx = t.clientX - start.x
+    const dy = t.clientY - start.y
+    // Require a clearly horizontal gesture: enough distance AND more horizontal than vertical.
+    if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+      go(dx < 0 ? 1 : -1)
+    }
   }
 
   const stage = useMemo(() => {
@@ -93,9 +103,11 @@ export function BookReader({ book }: { book: Book }) {
 
   return (
     <div className="fixed inset-0 z-[200] bg-black text-white">
-      {/* Reading frame: centered 9:16 stage, letterboxed on wide screens, full-bleed on phones */}
+      {/* Reading frame: centered 9:16 stage, letterboxed on wide screens, full-bleed on phones.
+          touch-pan-y + overscroll-none stops the browser's edge back-swipe from stealing our
+          horizontal page-turn gesture on mobile. */}
       <div
-        className="relative mx-auto h-full w-full max-w-[calc(100svh*9/16)]"
+        className="relative mx-auto h-full w-full max-w-[calc(100svh*9/16)] touch-pan-y overscroll-none select-none"
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
@@ -165,6 +177,9 @@ export function BookReader({ book }: { book: Book }) {
               >
                 Start Reading
               </button>
+              <p className="mt-4 text-[11px] uppercase tracking-[0.2em] text-white/40">
+                Tap or swipe to turn the page
+              </p>
             </div>
           </div>
         )}
@@ -193,8 +208,9 @@ export function BookReader({ book }: { book: Book }) {
               <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[#f4e9d6] to-transparent" />
             </div>
 
-            {/* Text panel (bottom): warm paper, serif. Text auto-fits — always large, never scrolls. */}
-            <div className="relative z-20 flex-[11] overflow-hidden bg-[#f4e9d6] px-6 py-5">
+            {/* Text panel (bottom): warm paper, serif. Text auto-fits — always large, never scrolls.
+                Extra bottom padding keeps prose clear of the on-screen controls. */}
+            <div className="relative z-20 flex-[11] overflow-hidden bg-[#f4e9d6] px-6 pt-5 pb-20">
               <AutoFitText text={page.text} />
             </div>
           </div>
@@ -227,12 +243,30 @@ export function BookReader({ book }: { book: Book }) {
           </div>
         )}
 
-        {/* Bottom desktop affordance */}
+        {/* On-screen controls — visible, large touch targets. Tap zones + swipe still work;
+            these give an obvious, discoverable way to turn pages on mobile. */}
         {stage === "page" && (
-          <div className="pointer-events-none absolute bottom-3 left-1/2 z-40 flex -translate-x-1/2 items-center gap-6 text-white/40">
-            <ChevronLeft className="h-5 w-5" />
-            <span className="text-[11px] uppercase tracking-widest">tap to turn</span>
-            <ChevronRight className="h-5 w-5" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-40 flex items-center justify-between px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-10 bg-gradient-to-t from-black/50 to-transparent">
+            <button
+              onClick={() => go(-1)}
+              aria-label="Previous page"
+              className="pointer-events-auto grid h-12 w-12 place-items-center rounded-full bg-black/45 text-white/85 backdrop-blur transition-all active:scale-90 hover:bg-black/60 disabled:opacity-0"
+              disabled={index <= 0}
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </button>
+
+            <span className="pointer-events-none rounded-full bg-black/40 px-3 py-1 text-[11px] font-medium tracking-wide text-white/70 backdrop-blur">
+              {index + 1} / {total}
+            </span>
+
+            <button
+              onClick={() => go(1)}
+              aria-label="Next page"
+              className="pointer-events-auto grid h-12 w-12 place-items-center rounded-full bg-primary text-primary-foreground shadow-lg transition-all active:scale-90 hover:brightness-105"
+            >
+              <ChevronRight className="h-6 w-6" />
+            </button>
           </div>
         )}
       </div>

@@ -6,11 +6,12 @@ serves that.
 
 ## Hard rules
 
-1. NO TEXT INSIDE THE ILLUSTRATION, EVER.
-   Story words, titles, captions, sign text, labels, and speech never appear painted on or
-   overlaid on the artwork. Illustrations are always textless. All words live only in the
-   dedicated text panel. If a story beat involves a sign/letter/label, the ART shows it BLANK
-   and the words are read in the text panel. Do not reintroduce on-image text overlays.
+1. NO TEXT INSIDE THE ILLUSTRATION, AND NO SIGNAGE, EVER.
+   Story words, titles, captions, labels, and speech never appear painted on or overlaid on
+   the artwork. Illustrations are always textless. All words live only in the dedicated text
+   panel. Do NOT stage a sign/signpost/board/placard/label at all — not even blank, because a
+   blank board looks like the art broke. If a beat seems to need one, redesign the beat around
+   a wordless visual and put the words in the text panel. (See visual-consistency steering.)
 
 2. TEXT ALWAYS FITS ITS PANEL WITH NO SCROLLING.
    On every page, on every phone size, the full page text must be visible at once. The reader
@@ -32,8 +33,25 @@ serves that.
 - Each page is a vertical split: illustration on top, warm parchment text panel below.
 - The illustration is never cropped to make room for text; the split gives text its own space.
 - Split is roughly 45% image / 55% text on a phone, tuned so large text fits without scrolling.
-- Tapping anywhere turns the page (right/forward, left/back); swipe and arrow keys also work.
 - Minimal chrome: a close control and a thin progress bar at the top. Nothing else competes.
+
+## Mobile interaction (phone-first — all three must work)
+
+The reader is used on a phone, one-handed. Page-turning is offered THREE redundant ways so it
+is always discoverable and never fiddly. All are implemented once in the shared
+`components/book-reader.tsx`, so every book gets them:
+
+1. **Tap** — tapping the art/page turns forward (right ~2/3) or back (left ~1/3). On the
+   COVER, tapping the art begins the story (not just the button).
+2. **On-screen controls** — visible large (≥44px) prev/next buttons at the bottom, with a
+   "current / total" page indicator. The next button is the accent color so it is obvious.
+3. **Swipe** — horizontal swipe left/right turns the page, on every stage (cover, page, end).
+   A swipe must be clearly horizontal (distance > ~45px AND more horizontal than vertical) so
+   a vertical scroll or a plain tap is never mistaken for a page turn. The frame uses
+   `touch-pan-y` + `overscroll-none` so the browser's edge back-swipe cannot steal the gesture.
+
+Arrow keys (left/right) also work for desktop. Respect safe-area insets at the bottom so
+controls clear the phone's home indicator.
 
 ## Authoring implication (page length)
 
