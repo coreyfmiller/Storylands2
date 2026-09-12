@@ -50,6 +50,8 @@ const STYLE = [
   'Warm, hand-crafted storybook illustration for a childrens picture book (ages 4-7).',
   'Rich but gentle color, soft natural light, expressive and characterful.',
   'Full-bleed vertical 9:16 composition.',
+  // The reader shows page art full-bleed with object-cover, which CROPS the edges to fill.
+  'CRITICAL FRAMING: the image will be displayed cropped to fill, so keep the main subject and ALL important detail (heads, ears, faces, paws, the key action) well within a centered safe area with generous margin and headroom on every side. Never place anything important near the top, bottom, or side edges. Leave comfortable empty space / background around the subject so nothing important is lost if the edges are cropped. Do not fill the frame edge-to-edge with the subject.',
   'IMPORTANT: absolutely NO text, letters, words, numbers, titles, or signage lettering anywhere in the image.',
   'Keep every character EXACTLY on-model with its provided reference image: same species, same fur/feather color and pattern, same eyes, same proportions, same apparent age.',
 ].join(' ')
