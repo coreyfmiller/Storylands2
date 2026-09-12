@@ -3,25 +3,36 @@
 // characters' reference PNGs (this is the consistency strategy). Resumable: skips pages
 // whose art already exists unless --force. Per-page failures are isolated.
 //
-// Run: node scripts/generate-book.mjs            (generate missing pages)
-//      node scripts/generate-book.mjs --force     (regenerate all)
-//      node scripts/generate-book.mjs --only 6,7  (specific pages)
+// Run: node scripts/generate-book.mjs                         (Story Zero, missing pages)
+//      node scripts/generate-book.mjs --book oliver-vacuum    (a specific book)
+//      node scripts/generate-book.mjs --book oliver-vacuum --force
+//      node scripts/generate-book.mjs --book oliver-vacuum --only 6,7
+//
+// Reads books/<book-id>/pages.mjs (must export `pages` and `CHARACTER_REFS`; may export
+// `CHARACTER_BIOS`) and writes public/books/<book-id>/pages/page-NN.png.
 
 import { readFile, writeFile, mkdir, access } from 'node:fs/promises'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { pathToFileURL, fileURLToPath } from 'node:url'
 import { generateFromReferences, DEFAULT_IMAGE_MODEL } from './lib/openai-image.mjs'
-import { pages, CHARACTER_REFS } from '../books/nibs-perfect-acorn/pages.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '..')
 const PUBLIC = path.join(ROOT, 'public')
-const OUT = path.join(PUBLIC, 'books', 'nibs-perfect-acorn', 'pages')
 
 const args = process.argv.slice(2)
 const FORCE = args.includes('--force')
 const onlyIdx = args.indexOf('--only')
 const ONLY = onlyIdx >= 0 ? new Set((args[onlyIdx + 1] || '').split(',').map((n) => parseInt(n, 10))) : null
+
+// --book <id> selects which book to generate. Defaults to Story Zero for backward compat.
+const bookIdx = args.indexOf('--book')
+const BOOK_ID = bookIdx >= 0 ? args[bookIdx + 1] : 'nibs-perfect-acorn'
+
+const OUT = path.join(PUBLIC, 'books', BOOK_ID, 'pages')
+const manifestPath = path.join(ROOT, 'books', BOOK_ID, 'pages.mjs')
+const manifestModule = await import(pathToFileURL(manifestPath).href)
+const { pages, CHARACTER_REFS } = manifestModule
 
 async function loadEnv() {
   try {
@@ -43,11 +54,21 @@ const STYLE = [
   'Keep every character EXACTLY on-model with its provided reference image: same species, same fur/feather color and pattern, same eyes, same proportions, same apparent age.',
 ].join(' ')
 
+// Optional per-book character descriptions (id -> short on-model line). Books may export
+// CHARACTER_BIOS from pages.mjs; if absent we fall back to a generic instruction.
+const BIOS = manifestModule.CHARACTER_BIOS || {}
+
 function compilePrompt(m) {
+  const ordinals = ['FIRST', 'SECOND', 'THIRD', 'FOURTH']
   const who =
-    m.charactersPresent.length === 2
-      ? `The FIRST reference image is Nibs, a small red-orange squirrel with a large fluffy tail and big brown eyes. The SECOND reference image is Tilly, a small brown owl with large amber-brown eyes and tufted ears. Draw BOTH, each exactly on-model with its own reference, at a similar small scale.`
-      : `The reference image is Nibs, a small red-orange squirrel with a large fluffy tail and big brown expressive eyes. Draw Nibs exactly on-model with the reference.`
+    m.charactersPresent.length > 1
+      ? m.charactersPresent
+          .map((c, i) => {
+            const bio = BIOS[c] || `${c}, exactly as in the reference image`
+            return `The ${ordinals[i] || 'next'} reference image is ${bio}.`
+          })
+          .join(' ') + ' Draw EACH character exactly on-model with its own reference image.'
+      : `The reference image is ${BIOS[m.charactersPresent[0]] || m.charactersPresent[0] + ', exactly as in the reference'}. Draw it exactly on-model with the reference.`
   return [
     STYLE,
     who,
