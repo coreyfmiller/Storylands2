@@ -112,3 +112,26 @@ for an existing character (same locked style + reference, brand-new plot) — id
 without hand-tuning each page. If the character holds on-model across a story we did NOT
 carefully massage, the pipeline works. Treat the first few books as consistency tests, not
 just content.
+
+
+## Working as a leading children's author (autonomy + pace)
+
+When asked to build multiple books, act as a leading author in the children's space and work
+through them autonomously — do NOT stop to ask which character or wait for approval between
+books. Pick up the next character, build a solid, ORIGINAL story on the spine, ship it, move on.
+
+- Each book must be genuinely good on its own — a distinct premise, setting, and voice. Never
+  reuse another book's plot or a formula that feels copied. Same spine, different soul.
+- Take a break between books when you need it. Image generation is long (14 pages x ~1-2 min
+  each ≈ 20+ min per book), and moderation false-positives happen. Pace the work: finish and
+  ship one book fully (write → mirror → generate → QA → wire → verify → push) before starting
+  the next, rather than running everything at once. A clean, shipped book beats four
+  half-generated ones.
+- Between books is a natural checkpoint: confirm the last one is live and healthy, note any
+  pages that need a re-roll, then begin the next. It is fine to pause the run there.
+- Known friction to expect and handle without stopping: moderation false-positives (soften the
+  page's manifest wording — avoid words like "monster", "attack", "no longer barking" — and
+  regenerate that page); the generator is resumable, so re-run to fill any gaps.
+- Quality bar is unchanged under autonomy: every book still must clear product-standard,
+  visual-consistency, reader-layout, and the word-budget gate. Autonomy is about not waiting
+  for the user, not about lowering the bar.
