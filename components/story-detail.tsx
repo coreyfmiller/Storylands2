@@ -44,7 +44,7 @@ export function StoryDetail({
         >
           <div className="relative mx-auto aspect-[9/16] max-h-[62svh] w-auto">
             <Image
-              src={story.portrait || story.landscape || "/placeholder.svg"}
+              src={story.portrait || story.landscape}
               alt={`Cover for ${story.title}`}
               fill
               sizes="(min-width: 640px) 360px, 100vw"
@@ -61,7 +61,7 @@ export function StoryDetail({
           className="group relative block aspect-[16/10] w-full cursor-pointer text-left sm:aspect-[16/8]"
         >
           <Image
-            src={story.landscape || "/placeholder.svg"}
+            src={story.landscape}
             alt={`Key art for ${story.title}`}
             fill
             sizes="(min-width: 640px) 640px, 100vw"
@@ -141,7 +141,7 @@ export function StoryDetail({
                     }`}
                   >
                     <Image
-                      src={thumbOf(paintedCover ? r.portrait || r.landscape : r.landscape) || "/placeholder.svg"}
+                      src={thumbOf(paintedCover ? r.portrait || r.landscape : r.landscape)}
                       alt={paintedCover ? r.title : ""}
                       fill
                       sizes="(min-width: 640px) 200px, 33vw"

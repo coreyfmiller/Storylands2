@@ -2,7 +2,8 @@
 // character (Tilly) in-frame? Seeds every call with the character PNG references.
 //
 // Run:  node scripts/consistency-test.mjs
-// Output: public/consistency-test/*.png  (viewable at /consistency-test/<file> when dev runs)
+// Output: assets/consistency-test/*.png  (open the files directly; this is a dev experiment,
+//         so it writes outside public/ rather than shipping 10 MB of test renders on deploy)
 
 import { readFile, writeFile, mkdir } from 'node:fs/promises'
 import path from 'node:path'
@@ -11,8 +12,8 @@ import { generateFromReferences, DEFAULT_IMAGE_MODEL } from './lib/openai-image.
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '..')
-const CHARS = path.join(ROOT, 'public', 'characters')
-const OUT = path.join(ROOT, 'public', 'consistency-test')
+const CHARS = path.join(ROOT, 'assets', 'characters')
+const OUT = path.join(ROOT, 'assets', 'consistency-test')
 
 // Minimal .env.local loader (no dependency).
 async function loadEnv() {
@@ -79,7 +80,7 @@ async function main() {
       console.error('  ' + String(e.message || e))
     }
   }
-  console.log(`\nDone. Files in: public/consistency-test/`)
+  console.log(`\nDone. Files in: assets/consistency-test/`)
 }
 
 main().catch((e) => {

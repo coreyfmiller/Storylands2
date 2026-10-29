@@ -10,35 +10,11 @@
 // Voice: warm restrained narrator, sparse Nibs dialogue, Tilly carries most spoken lines,
 // meaning stays underneath. Textless 9:16 art; the text is an overlay in the reader.
 
-export type IllustrationManifest = {
-  charactersPresent: string[] // reference character ids to seed with
-  location: string
-  timeOfDay: string
-  action: string
-  emotionalBeat: string
-  requiredVisualFacts: string[]
-  forbiddenVisualFacts: string[]
-  composition: string
-}
+import { pageArt, type Book, type BookPage, type IllustrationManifest } from '../types'
 
-export type BookPage = {
-  page: number
-  text: string // the read-aloud prose for this page
-  art: string // generated illustration path (filled after generation)
-  manifest: IllustrationManifest
-}
+// Re-exported so anything that imported these from this module still resolves.
+export type { Book, BookPage, IllustrationManifest }
 
-export type Book = {
-  id: string
-  title: string
-  subtitle: string
-  character: string
-  ages: string
-  minutes: number
-  pages: BookPage[]
-}
-
-// Reference character files live in /public/characters. Seed image generation with these.
 export const CHARACTER_REFS: Record<string, string> = {
   nibs: 'characters/nibs.png',
   tilly: 'characters/Tilly.png',
@@ -277,6 +253,6 @@ export const book: Book = {
   ...rawBook,
   pages: rawBook.pages.map((p) => ({
     ...p,
-    art: p.art || `books/nibs-perfect-acorn/pages/page-${String(p.page).padStart(2, '0')}.png`,
+    art: p.art || pageArt('nibs-perfect-acorn', p.page),
   })),
 }

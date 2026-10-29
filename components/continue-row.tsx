@@ -1,10 +1,18 @@
 "use client"
 
+import { useMemo } from "react"
 import Image from "next/image"
 import type { Profile, Story } from "@/lib/catalog"
-import { continueForProfile, thumbOf } from "@/lib/catalog"
+import { storyByReaderSlug, thumbOf } from "@/lib/catalog"
+import { useProgress } from "@/lib/progress"
 import { Play } from "lucide-react"
 
+// Books this device has actually started and not finished, most recent first.
+//
+// This row used to be fed by a table of invented progress in lib/catalog.ts —
+// Avery was 45% through Pip on a fresh install, and tapping the card started
+// from page one anyway. Now it reads lib/progress.ts, which the reader writes,
+// so an empty row means nothing has been read yet. Which is the truth.
 export function ContinueRow({
   profile,
   onResume,
@@ -12,7 +20,27 @@ export function ContinueRow({
   profile: Profile
   onResume: (s: Story) => void
 }) {
-  const items = continueForProfile(profile)
+  const { progress } = useProgress()
+
+  const items = useMemo(() => {
+    return Object.entries(progress)
+      .filter(([, p]) => !p.finished && p.page > 0)
+      .sort((a, b) => b[1].updatedAt - a[1].updatedAt)
+      .map(([slug, p]) => {
+        const story = storyByReaderSlug(slug)
+        if (!story || !profile.bands.includes(story.band)) return null
+        return {
+          story,
+          // Picture books have pages, not chapters, and the reader knows exactly
+          // which one. No estimated minutes, no invented chapter number.
+          label: `Page ${p.page + 1} of ${p.total}`,
+          fraction: (p.page + 1) / p.total,
+        }
+      })
+      .filter((x): x is { story: Story; label: string; fraction: number } => x !== null)
+      .slice(0, 6)
+  }, [progress, profile])
+
   if (!items.length) return null
 
   // Ages 4–7 use tall 9:16 character covers with titles painted into the art. Render them
@@ -28,17 +56,17 @@ export function ContinueRow({
         </h2>
       </div>
       <div className="flex snap-x snap-mandatory gap-3.5 overflow-x-auto scrollbar-hide px-4 pb-1 sm:px-6 lg:px-10">
-        {items.map(({ story, label, progress }) =>
+        {items.map(({ story, label, fraction }) =>
           youngOnly ? (
             <button
               key={story.id}
               onClick={() => onResume(story)}
               className="group relative w-[46vw] shrink-0 snap-start text-left sm:w-[200px]"
-              aria-label={`Resume ${story.title}`}
+              aria-label={`Resume ${story.title}, ${label}`}
             >
               <div className="relative aspect-[9/16] overflow-hidden rounded-md ring-1 ring-border transition-all duration-500 group-hover:ring-primary/50 group-focus-visible:ring-2 group-focus-visible:ring-primary">
                 <Image
-                  src={story.portrait || story.landscape || "/placeholder.svg"}
+                  src={thumbOf(story.portrait || story.landscape)}
                   alt={story.title}
                   fill
                   sizes="(min-width: 640px) 200px, 46vw"
@@ -55,7 +83,7 @@ export function ContinueRow({
                 <div className="absolute inset-x-0 bottom-0 h-[3px] bg-white/15">
                   <div
                     className="h-full bg-primary transition-[width] duration-700"
-                    style={{ width: `${Math.round(progress * 100)}%` }}
+                    style={{ width: `${Math.round(fraction * 100)}%` }}
                   />
                 </div>
               </div>
@@ -66,11 +94,11 @@ export function ContinueRow({
               key={story.id}
               onClick={() => onResume(story)}
               className="group relative w-[82vw] shrink-0 snap-start text-left sm:w-[400px]"
-              aria-label={`Resume ${story.title}`}
+              aria-label={`Resume ${story.title}, ${label}`}
             >
               <div className="relative aspect-[16/9] overflow-hidden rounded-md ring-1 ring-border transition-all duration-500 group-hover:ring-primary/50 group-focus-visible:ring-2 group-focus-visible:ring-primary">
                 <Image
-                  src={thumbOf(story.landscape) || "/placeholder.svg"}
+                  src={thumbOf(story.landscape)}
                   alt=""
                   fill
                   sizes="(min-width: 640px) 400px, 82vw"
@@ -94,7 +122,7 @@ export function ContinueRow({
                 <div className="absolute inset-x-0 bottom-0 h-[3px] bg-white/15">
                   <div
                     className="h-full bg-primary transition-[width] duration-700"
-                    style={{ width: `${Math.round(progress * 100)}%` }}
+                    style={{ width: `${Math.round(fraction * 100)}%` }}
                   />
                 </div>
               </div>

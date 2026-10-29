@@ -20,6 +20,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '..')
 const PUBLIC = path.join(ROOT, 'public')
 
+// Character reference art lives in assets/, NOT public/. These are 2.2 MB PNG masters used
+// only to seed the image model; served to a browser they were fifteen megabytes to paint the
+// home grid. public/characters now holds the WebP the app actually displays.
+const REFS = path.join(ROOT, 'assets')
+
 const args = process.argv.slice(2)
 const FORCE = args.includes('--force')
 const onlyIdx = args.indexOf('--only')
@@ -97,12 +102,16 @@ async function main() {
     if (ONLY && !ONLY.has(m.page)) continue
     const name = `page-${String(m.page).padStart(2, '0')}.png`
     const outPath = path.join(OUT, name)
-    if (!FORCE && (await exists(outPath))) {
+    // A page is already done if either the PNG render OR the WebP the app serves is on disk.
+    // optimize-books.mjs --prune deletes the PNG once it has converted it, so checking only
+    // the PNG would re-generate — and re-bill — every page of an already-finished book.
+    const webpPath = outPath.replace(/\.png$/, '.webp')
+    if (!FORCE && ((await exists(outPath)) || (await exists(webpPath)))) {
       console.log(`page ${m.page}: exists, skip`)
       results.push({ page: m.page, status: 'skip' })
       continue
     }
-    const refs = m.charactersPresent.map((c) => path.join(PUBLIC, CHARACTER_REFS[c]))
+    const refs = m.charactersPresent.map((c) => path.join(REFS, CHARACTER_REFS[c]))
     const prompt = compilePrompt(m)
     process.stdout.write(`page ${m.page}: generating (${m.charactersPresent.join('+')}) ... `)
     try {
@@ -122,6 +131,11 @@ async function main() {
   const fail = results.filter((r) => r.status === 'fail')
   console.log(`\nGenerated ${ok}, skipped ${skip}, failed ${fail.length}.`)
   if (fail.length) console.log('Failed pages: ' + fail.map((f) => f.page).join(', '))
+  if (ok > 0) {
+    // The reader loads .webp. A fresh PNG render is ~2.3 MB and will not be served until
+    // it has been converted, so this is the required next step, not an optimisation.
+    console.log('\nNext: node scripts/optimize-books.mjs --prune')
+  }
 }
 
 main().catch((e) => { console.error(e); process.exit(1) })

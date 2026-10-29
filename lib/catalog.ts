@@ -58,8 +58,8 @@ export const stories: Story[] = [
     synopsis:
       "It's the night of the Lantern Festival, when every dragon lights a lantern with their own fire. Every dragon but Pip, who can only make smoke. But when Pip finds someone small and frightened in the dark, he discovers that the warmest flames don't come from trying harder — they come from a big heart.",
     readerSlug: "pip-first-flame",
-    landscape: "/characters/pip.png",
-    portrait: "/characters/pip.png",
+    landscape: "/characters/pip.webp",
+    portrait: "/characters/pip.webp",
     ages: "Ages 4+",
     targetAge: 5,
     band: "young",
@@ -77,8 +77,8 @@ export const stories: Story[] = [
     hook: "A brave little dog. One loud monster. And a home that must be defended.",
     synopsis:
       "The closet opens, and out comes the Monster: tall, loud, and dragging a long tail across the floor. Oliver has one job — keep everyone safe — and he is very good at it. But the Monster might not be what he thinks, and winning might mean something braver than barking.",
-    landscape: "/characters/oliver.png",
-    portrait: "/characters/oliver.png",
+    landscape: "/characters/oliver.webp",
+    portrait: "/characters/oliver.webp",
     readerSlug: "oliver-vacuum",
     ages: "Ages 4+",
     targetAge: 5,
@@ -96,8 +96,8 @@ export const stories: Story[] = [
     hook: "Big ideas. A small tent. And a dark that feels much bigger after sunset.",
     synopsis:
       "Maple has planned the perfect solo campout — snacks, a flashlight, and a list of Brave Things To Do. But when the sun goes down, every ordinary sound turns into a monster, and Maple learns that being brave isn't about never being scared. It's about looking anyway.",
-    landscape: "/characters/maple.png",
-    portrait: "/characters/maple.png",
+    landscape: "/characters/maple.webp",
+    portrait: "/characters/maple.webp",
     readerSlug: "maple-backyard-night",
     ages: "Ages 4+",
     targetAge: 6,
@@ -115,8 +115,8 @@ export const stories: Story[] = [
     hook: "One small duckling. One enormous lake. And a very big plan.",
     synopsis:
       "Finn wants to swim all the way across the lake in one big, brave splash, just like the big ducks. But up close the water looks enormous, and his brave splash gets stuck inside him. Then Finn discovers a secret: even the biggest lake is only ever one small splash at a time.",
-    landscape: "/characters/finn.png",
-    portrait: "/characters/finn.png",
+    landscape: "/characters/finn.webp",
+    portrait: "/characters/finn.webp",
     readerSlug: "finn-little-boat",
     ages: "Ages 4+",
     targetAge: 5,
@@ -134,8 +134,8 @@ export const stories: Story[] = [
     hook: "Nibs found the perfect acorn. Keeping it safe is where the trouble starts.",
     synopsis:
       "Nibs is a squirrel with very high standards, and he has finally found the Absolutely Perfect Acorn. The only problem with a perfect thing is that now you can lose it — and Nibs is about to hide it so well that even he can't find it again.",
-    landscape: "/characters/nibs.png",
-    portrait: "/characters/nibs.png",
+    landscape: "/characters/nibs.webp",
+    portrait: "/characters/nibs.webp",
     readerSlug: "nibs-perfect-acorn",
     ages: "Ages 4+",
     targetAge: 5,
@@ -153,8 +153,8 @@ export const stories: Story[] = [
     hook: "The Autumn Fair is loud, bright, and a lot. Rusty's feelings get big.",
     synopsis:
       "Rusty has been looking forward to the Autumn Fair all week. But when the drums get louder and everything happens at once, his feelings grow too big for his fur. Hiding at the edge of the meadow, Rusty finds someone even smaller who feels the same — and discovers that being gentle is how big feelings get small again.",
-    landscape: "/characters/rusty.png",
-    portrait: "/characters/rusty.png",
+    landscape: "/characters/rusty.webp",
+    portrait: "/characters/rusty.webp",
     readerSlug: "rusty-loud-day",
     ages: "Ages 4+",
     targetAge: 6,
@@ -172,8 +172,8 @@ export const stories: Story[] = [
     hook: "Lumi lights the way home for everyone. But who lights the way for Lumi?",
     synopsis:
       "Lumi the little owl has a bright star lantern and a very important job: lighting the way home. When she helps a lost firefly, she insists on doing everything herself — until her lantern flickers out in the dark. It's the firefly's own tiny glow that shows Lumi a little light goes a long way, especially when it's shared.",
-    landscape: "/characters/lumi.png",
-    portrait: "/characters/lumi.png",
+    landscape: "/characters/lumi.webp",
+    portrait: "/characters/lumi.webp",
     readerSlug: "lumi-lights-way",
     ages: "Ages 4+",
     targetAge: 6,
@@ -407,7 +407,7 @@ export const series: Series[] = [
     id: "pip",
     name: "Pip",
     tagline: "The little dragon with a late-arriving flame.",
-    image: "/characters/pip.png",
+    image: "/characters/pip.webp",
     count: 2,
     band: "young",
     glow: "oklch(0.82 0.13 68)",
@@ -448,7 +448,7 @@ export const profiles: Profile[] = [
     age: 6,
     bands: ["young"],
     heroId: "pip",
-    avatar: "/characters/pip.png",
+    avatar: "/characters/pip.webp",
     color: "oklch(0.82 0.13 68)",
   },
   {
@@ -494,42 +494,24 @@ export function storyById(id: string) {
   return byId(id)
 }
 
-/** Map a full-size art path to its lightweight thumbnail variant. */
+/**
+ * Map a full-size art path to its lightweight thumbnail variant.
+ *
+ * Both art directories have a `thumb/` beside them, written by
+ * scripts/optimize-art.mjs. `/characters/` was missing here, which is why the
+ * 32px avatar in the nav was downloading the full-size cover.
+ */
 export function thumbOf(src: string) {
-  return src.replace("/art/", "/art/thumb/")
+  return src.replace("/art/", "/art/thumb/").replace("/characters/", "/characters/thumb/")
 }
 
 export function seriesForProfile(p: Profile) {
   return series.filter((s) => p.bands.includes(s.band))
 }
 
-type ContinueItem = { story: Story; label: string; progress: number }
-
-const continueMap: Record<string, ContinueItem[]> = {
-  avery: [
-    { story: byId("pip"), label: "Chapter 2", progress: 0.45 },
-    { story: byId("finn"), label: "6 min left", progress: 0.7 },
-    { story: byId("oliver"), label: "Just started", progress: 0.12 },
-  ],
-  maya: [
-    { story: byId("firefly"), label: "8 min left", progress: 0.62 },
-    { story: byId("shed"), label: "Chapter 3", progress: 0.4 },
-    { story: byId("juniper"), label: "18 min left", progress: 0.25 },
-  ],
-  leo: [
-    { story: byId("lighthouse"), label: "Chapter 4", progress: 0.55 },
-    { story: byId("bellweather"), label: "22 min left", progress: 0.3 },
-    { story: byId("map"), label: "Just started", progress: 0.1 },
-  ],
-  alex: [
-    { story: byId("vanished"), label: "Chapter 6", progress: 0.68 },
-    { story: byId("blackriver"), label: "30 min left", progress: 0.35 },
-    { story: byId("signal"), label: "Chapter 2", progress: 0.2 },
-  ],
-}
-
-export function continueForProfile(p: Profile) {
-  return continueMap[p.id] ?? []
+/** The story whose reader lives at /read/<slug>, if one does. */
+export function storyByReaderSlug(slug: string) {
+  return stories.find((s) => s.readerSlug === slug)
 }
 
 type ShelfDef = {
@@ -627,7 +609,12 @@ export function heroRotationForProfile(p: Profile): Story[] {
   return built.length > 0 ? built : pool
 }
 
-export function shelvesForProfile(p: Profile): Shelf[] {
+/**
+ * @param recent The last book actually opened on this device, if any. It only
+ *   titles the "Because You Read" shelf — with nothing read, that shelf is
+ *   dropped rather than naming a book the reader has never seen.
+ */
+export function shelvesForProfile(p: Profile, recent?: Story): Shelf[] {
   const pool = stories.filter((s) => p.bands.includes(s.band))
   const shelves: Shelf[] = []
   const heroId = p.heroId
@@ -637,11 +624,10 @@ export function shelvesForProfile(p: Profile): Shelf[] {
   const defaultLayout: "landscape" | "portrait" = youngOnly ? "portrait" : "landscape"
 
   for (const def of shelfDefs) {
-    // Tailor the firefly-affinity shelf label to the active profile
     let title = def.title
     if (title.startsWith("Because You Read")) {
-      const seed = continueMap[p.id]?.[0]?.story
-      if (seed) title = `Because You Read ${seed.title}`
+      if (!recent) continue
+      title = `Because You Read ${recent.title}`
     }
 
     let items = pool.filter(def.filter)

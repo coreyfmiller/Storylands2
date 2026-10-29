@@ -155,7 +155,7 @@ function Avatar({ profile, size }: { profile: Profile; size: number }) {
       style={{ width: size, height: size }}
     >
       <Image
-        src={thumbOf(profile.avatar) || "/placeholder.svg"}
+        src={thumbOf(profile.avatar)}
         alt=""
         fill
         sizes="40px"

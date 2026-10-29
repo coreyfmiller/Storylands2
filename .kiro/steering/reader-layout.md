@@ -19,6 +19,15 @@ serves that.
    - Runtime: the text panel auto-fits — it renders the prose as large as possible and steps
      the font size down only as far as needed to fit (down to a readable floor). See
      AutoFitText in components/book-reader.tsx (preferred ~34px phone, floor ~17px).
+     It **binary searches** the range rather than walking down a pixel at a time: each probe
+     reads `scrollHeight` and forces a synchronous layout, so the old loop cost up to 40
+     reflows on every page turn. A larger font never fits better, so halving finds the same
+     answer in five. It also re-fits on resize — rotating a phone halves the panel height,
+     and without that the prose kept the portrait size and overflowed.
+     When it finishes, it leaves the winning size **on the node as well as in state**. Clearing
+     the inline style and relying on the re-render fails silently whenever the new size equals
+     the old one: React sees no change, restores nothing, and the prose drops to the
+     stylesheet's 16px. That shipped for about an hour; a browser check caught it.
    - Authoring: pages are written SHORT enough that they fit at a large, comfortable size
      without shrinking to the floor. Auto-fit is a safety net, not a license to overwrite
      long pages. If a page has to shrink noticeably to fit, the page text is too long — split
@@ -43,7 +52,10 @@ serves that.
   important near the edges" to page composition notes.
 - Split is roughly 45% image / 55% text on a phone (image `flex-[9]`, text `flex-[11]`), giving
   a bold full-bleed image band on top and room for large, no-scroll text below.
-- Minimal chrome: a close control and a thin progress bar at the top. Nothing else competes.
+- Minimal chrome: a close control, a thin progress bar, and the read-aloud toggle at the top.
+  Nothing else competes. The read-aloud button is the only addition that earns its place —
+  it's what lets a child who can't read yet open a book alone — and it disappears where the
+  browser has no `speechSynthesis` rather than sitting there doing nothing.
 
 ## Mobile interaction (phone-first — all three must work)
 

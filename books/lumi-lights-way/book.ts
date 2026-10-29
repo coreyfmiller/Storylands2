@@ -17,33 +17,10 @@
 // Voice: warm, gentle, luminous; Lumi is caring and a touch bossy in her helpfulness; the
 // lesson (letting someone be brave is its own kind of light) is SHOWN. Textless 9:16 art.
 
-export type IllustrationManifest = {
-  charactersPresent: string[]
-  location: string
-  timeOfDay: string
-  action: string
-  emotionalBeat: string
-  requiredVisualFacts: string[]
-  forbiddenVisualFacts: string[]
-  composition: string
-}
+import { pageArt, type Book, type BookPage, type IllustrationManifest } from '../types'
 
-export type BookPage = {
-  page: number
-  text: string
-  art: string
-  manifest: IllustrationManifest
-}
-
-export type Book = {
-  id: string
-  title: string
-  subtitle: string
-  character: string
-  ages: string
-  minutes: number
-  pages: BookPage[]
-}
+// Re-exported so anything that imported these from this module still resolves.
+export type { Book, BookPage, IllustrationManifest }
 
 export const CHARACTER_REFS: Record<string, string> = {
   lumi: 'characters/lumi.png',
@@ -267,6 +244,6 @@ export const book: Book = {
   ...rawBook,
   pages: rawBook.pages.map((p) => ({
     ...p,
-    art: p.art || `books/lumi-lights-way/pages/page-${String(p.page).padStart(2, '0')}.png`,
+    art: p.art || pageArt('lumi-lights-way', p.page),
   })),
 }

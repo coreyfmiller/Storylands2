@@ -141,7 +141,7 @@ export function SearchOverlay({
               >
                 <div className="relative aspect-[16/10] overflow-hidden rounded-md ring-1 ring-border transition-all group-hover:ring-primary/50">
                   <Image
-                    src={thumbOf(s.landscape) || "/placeholder.svg"}
+                    src={thumbOf(s.landscape)}
                     alt=""
                     fill
                     sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"

@@ -10,8 +10,11 @@ import {
   libraryForProfile,
   heroRotationForProfile,
 } from "@/lib/catalog"
+import { storyByReaderSlug } from "@/lib/catalog"
+import { useProgress } from "@/lib/progress"
 import { SiteNav } from "@/components/site-nav"
 import { Hero } from "@/components/hero"
+import { ContinueRow } from "@/components/continue-row"
 import { StoryRow } from "@/components/story-row"
 import { SeriesRow } from "@/components/series-row"
 import { LibraryGrid } from "@/components/library-grid"
@@ -37,8 +40,17 @@ export function StorylandsApp() {
     window.scrollTo({ top: 0, behavior: "smooth" })
   }, [])
 
+  // The most recently opened book on this device, used to title the
+  // "Because You Read" shelf. With nothing read, that shelf is dropped rather
+  // than naming a book this reader has never opened.
+  const { progress } = useProgress()
+  const recent = useMemo(() => {
+    const [latest] = Object.entries(progress).sort((a, b) => b[1].updatedAt - a[1].updatedAt)
+    return latest ? storyByReaderSlug(latest[0]) : undefined
+  }, [progress])
+
   const richShelves = useMemo(() => shouldUseRichShelves(active), [active])
-  const shelves = useMemo(() => shelvesForProfile(active), [active])
+  const shelves = useMemo(() => shelvesForProfile(active, recent), [active, recent])
   const library = useMemo(() => libraryForProfile(active), [active])
   const heroRotation = useMemo(() => heroRotationForProfile(active), [active])
   const heroStory = heroRotation[heroIndex % heroRotation.length]
@@ -96,6 +108,10 @@ export function StorylandsApp() {
         />
 
         <div className="relative z-10 -mt-12 pb-8">
+          {/* Renders nothing until a book has actually been started, so a fresh
+              install doesn't open on a row of things nobody read. */}
+          <ContinueRow profile={active} onResume={openReader} />
+
           {richShelves ? (
             // Large catalog: the full Netflix-style recommendation rows (distinct per row).
             <>

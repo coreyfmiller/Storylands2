@@ -15,11 +15,33 @@ const geist = Geist({
   display: 'swap',
 })
 
+// Storylands books are linear picture books, read a page at a time. This used to
+// promise "meaningful choices" and "interactive stories", which the app has never
+// had and deliberately doesn't — see components/coming-soon.tsx.
+// Open Graph images are referenced by path, so they need an origin to resolve against.
+// Without this Next falls back to localhost:3000 and every shared book link previews a
+// broken image.
+const siteUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL
+  ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+  : 'http://localhost:3000'
+
 export const metadata: Metadata = {
-  title: 'Storylands — Interactive Illustrated Stories',
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: 'Storylands — Illustrated Stories for Children',
+    template: '%s — Storylands',
+  },
   description:
-    'Enter beautifully illustrated worlds, make meaningful choices, and discover original interactive stories. A premium destination for illustrated fiction.',
-  generator: 'v0.app',
+    'Original illustrated picture books, read a page at a time. Warm, hand-crafted art and gentle stories for children aged four and up.',
+  // The icon files were in public/ but nothing pointed at them, so every tab
+  // showed a blank page glyph and /favicon.ico 404'd on load.
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/icon-light-32x32.png', sizes: '32x32', type: 'image/png' },
+    ],
+    apple: '/apple-icon.png',
+  },
 }
 
 export const viewport: Viewport = {

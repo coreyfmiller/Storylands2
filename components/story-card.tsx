@@ -37,7 +37,7 @@ export function LandscapeCard({ story, onOpen }: Props) {
     >
       <div className="relative aspect-[16/10] overflow-hidden rounded-md ring-1 ring-border transition-all duration-500 ease-out group-hover:ring-primary/50 group-focus-visible:ring-2 group-focus-visible:ring-primary">
         <Image
-          src={thumbOf(story.landscape) || "/placeholder.svg"}
+          src={thumbOf(story.landscape)}
           alt=""
           fill
           sizes="(min-width: 1024px) 360px, (min-width: 640px) 340px, 76vw"
@@ -93,7 +93,7 @@ export function PortraitCard({
         }`}
       >
         <Image
-          src={thumbOf(story.portrait || story.landscape) || "/placeholder.svg"}
+          src={thumbOf(story.portrait || story.landscape)}
           alt={hideMeta ? story.title : ""}
           fill
           sizes="(min-width: 640px) 200px, 46vw"

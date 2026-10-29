@@ -27,7 +27,7 @@ export function ComingSoon({
           <div className="relative w-full bg-black">
             <div className="relative mx-auto aspect-[9/16] max-h-[48svh] w-auto">
               <Image
-                src={story.portrait || story.landscape || "/placeholder.svg"}
+                src={story.portrait || story.landscape}
                 alt={`Cover for ${story.title}`}
                 fill
                 sizes="(min-width: 640px) 320px, 100vw"

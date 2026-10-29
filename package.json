@@ -1,11 +1,16 @@
 {
-  "name": "my-project",
+  "name": "storylands",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "check": "tsc --noEmit && next build",
+    "audit:text": "node scripts/audit-text.mjs",
+    "art": "node scripts/optimize-art.mjs",
+    "books": "node scripts/optimize-books.mjs --prune"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

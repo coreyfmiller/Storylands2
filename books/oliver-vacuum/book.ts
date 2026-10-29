@@ -15,35 +15,11 @@
 // is a heroic guard dog); comedy comes from the gap between his epic framing and the ordinary
 // reality. Textless 9:16 art; the words live only in the reader's text panel.
 
-export type IllustrationManifest = {
-  charactersPresent: string[] // reference character ids to seed with
-  location: string
-  timeOfDay: string
-  action: string
-  emotionalBeat: string
-  requiredVisualFacts: string[]
-  forbiddenVisualFacts: string[]
-  composition: string
-}
+import { pageArt, type Book, type BookPage, type IllustrationManifest } from '../types'
 
-export type BookPage = {
-  page: number
-  text: string // the read-aloud prose for this page
-  art: string // generated illustration path (filled after generation)
-  manifest: IllustrationManifest
-}
+// Re-exported so anything that imported these from this module still resolves.
+export type { Book, BookPage, IllustrationManifest }
 
-export type Book = {
-  id: string
-  title: string
-  subtitle: string
-  character: string
-  ages: string
-  minutes: number
-  pages: BookPage[]
-}
-
-// Reference character files live in /public/characters. Seed image generation with these.
 export const CHARACTER_REFS: Record<string, string> = {
   oliver: 'characters/oliver.png',
 }
@@ -283,6 +259,6 @@ export const book: Book = {
   ...rawBook,
   pages: rawBook.pages.map((p) => ({
     ...p,
-    art: p.art || `books/oliver-vacuum/pages/page-${String(p.page).padStart(2, '0')}.png`,
+    art: p.art || pageArt('oliver-vacuum', p.page),
   })),
 }

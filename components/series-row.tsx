@@ -26,7 +26,7 @@ export function SeriesRow({ profile }: { profile: Profile }) {
           >
             <div className="relative aspect-[21/10] overflow-hidden rounded-md ring-1 ring-border transition-all duration-500 group-hover:ring-primary/40">
               <Image
-                src={thumbOf(s.image) || "/placeholder.svg"}
+                src={thumbOf(s.image)}
                 alt=""
                 fill
                 sizes="(min-width: 640px) 440px, 85vw"

@@ -16,33 +16,10 @@
 // Voice: bright, buoyant, encouraging; Finn is eager and dramatic; gentle water-adventure joy.
 // Theme shown, never stated. Textless 9:16 art; words live only in the reader's text panel.
 
-export type IllustrationManifest = {
-  charactersPresent: string[]
-  location: string
-  timeOfDay: string
-  action: string
-  emotionalBeat: string
-  requiredVisualFacts: string[]
-  forbiddenVisualFacts: string[]
-  composition: string
-}
+import { pageArt, type Book, type BookPage, type IllustrationManifest } from '../types'
 
-export type BookPage = {
-  page: number
-  text: string
-  art: string
-  manifest: IllustrationManifest
-}
-
-export type Book = {
-  id: string
-  title: string
-  subtitle: string
-  character: string
-  ages: string
-  minutes: number
-  pages: BookPage[]
-}
+// Re-exported so anything that imported these from this module still resolves.
+export type { Book, BookPage, IllustrationManifest }
 
 export const CHARACTER_REFS: Record<string, string> = {
   finn: 'characters/finn.png',
@@ -266,6 +243,6 @@ export const book: Book = {
   ...rawBook,
   pages: rawBook.pages.map((p) => ({
     ...p,
-    art: p.art || `books/finn-little-boat/pages/page-${String(p.page).padStart(2, '0')}.png`,
+    art: p.art || pageArt('finn-little-boat', p.page),
   })),
 }

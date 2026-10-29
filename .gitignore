@@ -21,3 +21,8 @@ tsconfig.tsbuildinfo
 storylands.zip
 
 .vercel
+
+# One-off image-model experiments. scripts/consistency-test.mjs writes several
+# megabytes of near-identical renders here; they are evidence for a decision that
+# has already been made, not source.
+assets/consistency-test/

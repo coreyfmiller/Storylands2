@@ -1,9 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   images: {
+    // Every image in public/ is already a WebP produced at display size by
+    // scripts/optimize-art.mjs and scripts/optimize-books.mjs — a page is ~130 KB
+    // and a card thumbnail ~40 KB. Routing those through the optimizer would bill
+    // a transform per size per image for no measurable saving, so the files are
+    // served as-is. If raw uploads ever reach public/, turn this back off.
     unoptimized: true,
   },
   // Allow the dev server's client JS/fonts to load when opened from the LAN (e.g. a phone

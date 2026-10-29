@@ -44,7 +44,7 @@ export function Hero({
         style={{ transition: "transform 600ms cubic-bezier(0.16,1,0.3,1)", transform: `translate3d(${offset.x}px, ${offset.y}px, 0) scale(1.08)` }}
       >
         <Image
-          src={story.heroImage || story.landscape || "/placeholder.svg"}
+          src={story.heroImage || story.landscape}
           alt={`Key art for ${story.title}`}
           fill
           priority
