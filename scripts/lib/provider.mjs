@@ -172,7 +172,18 @@ async function geminiImage({ prompt, referencePaths, aspectRatio = '9:16' }) {
 
 // ---------------------------------------------------------------- OpenAI
 
-export const OPENAI_TEXT_MODEL = process.env.OPENAI_TEXT_MODEL || 'gpt-5.2'
+/**
+ * Authoring model.
+ *
+ * OpenAI's naming is generation + capability tier, where the tiers run
+ * Luna < Terra < Sol < Astra. Sol is the high-capability tier at $2/$10 per
+ * million tokens, which works out around 15 cents to write a book.
+ *
+ * Astra is the flagship and roughly five times the price. That is still small
+ * against the ~$1-2 of illustrations per book, so it is worth trying — but try
+ * it and READ BOTH rather than assuming. `--text-model gpt-6-astra`.
+ */
+export const OPENAI_TEXT_MODEL = process.env.OPENAI_TEXT_MODEL || 'gpt-6.1-sol'
 export const OPENAI_IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL || 'gpt-image-2.5-sunburst'
 
 function openaiKey() {

@@ -35,6 +35,7 @@ import { authorBook } from './lib/author-book.mjs'
 import { emitBookSource } from './lib/emit-book.mjs'
 import { validateBook } from './lib/validate-book.mjs'
 import { registerInIndex, registerInCatalog } from './lib/register-book.mjs'
+import { slugify } from './lib/slugify.mjs'
 import { loadAllBooks, BOOKS_DIR, ASSETS_DIR } from './lib/book-source.mjs'
 
 const args = process.argv.slice(2)
@@ -52,16 +53,7 @@ const DRY = flag('dry-run')
 const FORCE = flag('force')
 const WITH = (value('with') ?? '').split(',').map((s) => s.trim()).filter(Boolean)
 
-function slugify(s) {
-  return String(s)
-    .toLowerCase()
-    .replace(/['’]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-    .split('-')
-    .slice(0, 4)
-    .join('-')
-}
+
 
 async function exists(p) {
   try {
@@ -185,11 +177,16 @@ async function main() {
   console.log(`  slug: ${slug}  ->  /read/${slug}`)
 
   if (DRY) {
-    console.log('\n--- page 1 ---')
-    console.log(book.pages[0].text)
-    console.log(`\n--- final page (${book.pages.length}) ---`)
-    console.log(book.pages[book.pages.length - 1].text)
-    console.log('\nDry run: nothing written.')
+    // The whole book, because the point of a dry run is to READ it. Illustrating
+    // thirteen pages costs ten times what writing them does, so deciding the
+    // story is good before any art is generated is the only sensible order.
+    for (const p of book.pages) {
+      const w = p.text.trim().split(/\s+/).length
+      console.log(`\n--- page ${p.page}  (${w} words) ---`)
+      console.log(p.text)
+      console.log(`    [art: ${p.manifest.charactersPresent.join('+')} · ${p.manifest.action}]`)
+    }
+    console.log('\nDry run: nothing written. Re-run without --dry-run to keep it.')
     return
   }
 
