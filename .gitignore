@@ -26,3 +26,7 @@ storylands.zip
 # megabytes of near-identical renders here; they are evidence for a decision that
 # has already been made, not source.
 assets/consistency-test/
+
+# Narrator auditions. Throwaway: five readings of one page, regenerate any time
+# with scripts/voice-samples.mjs.
+assets/voice-samples/
