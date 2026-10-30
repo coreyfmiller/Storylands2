@@ -3,21 +3,25 @@
   "name": "Pixie",
   "species": "butterfly",
   "tagline": "Little moments can change everything.",
-  "bio": "Pixie, a cute small butterfly: a soft cream-and-tan furry body with darker brown markings down her abdomen, large rounded wings patterned in lilac-purple, pale blue and cream with soft yellow spots, fine pink-red veining and a thin warm gold edge, two long curling gold antennae each tipped with a tiny point of light, a small round cream face with very large dark eyes ringed in amber, soft eyelashes, rosy cheeks and a tiny smiling mouth, and two small teardrop-shaped tails hanging from her lower wings",
+  "bio": "Pixie, a cute small butterfly: a soft cream-and-tan furry body shaped as a single smooth tapered abdomen that narrows to a point, with darker brown markings along it and NO legs or feet of any kind, large rounded wings patterned in lilac-purple, pale blue and cream with soft yellow spots, fine pink-red veining and a thin warm gold edge, two long curling gold antennae each tipped with a tiny point of light, a small round cream face with very large dark eyes ringed in amber, soft eyelashes, rosy cheeks and a tiny smiling mouth, and two small teardrop-shaped tails hanging from her lower wings; she always hovers or perches lightly, never stands",
   "invariants": [
     "lilac-purple, pale blue and cream wings with soft yellow spots and fine pink-red veining",
     "a thin warm gold edge running all the way around the wings",
     "two long curling gold antennae, each tipped with a tiny point of light",
-    "a soft cream and tan furry body with darker brown markings down the abdomen",
+    "a single smooth tapered furry abdomen narrowing to a point, with darker brown markings and NO legs and NO feet",
     "very large dark eyes ringed with amber, soft eyelashes and rosy cheeks",
-    "two small teardrop-shaped tails hanging from the lower wings"
+    "two small teardrop-shaped tails hanging from the lower wings",
+    "all four wings fully inside the frame, never cut by an edge"
   ],
   "forbidden": [
     "a different wing pattern, wing shape or wing colour",
     "straight, clubbed or feathered antennae",
     "Pixie wearing clothing, jewellery or accessories",
     "a realistic or anatomically detailed insect; she is a soft storybook butterfly",
-    "visible insect legs beyond small tucked forelegs",
+    "ANY legs, feet, paws, hind legs, knees or toes on Pixie",
+    "Pixie standing on the ground, walking, or bearing her weight on legs",
+    "a mammal-like or squat body; her body is one tapered abdomen, not a torso with limbs",
+    "hands or fingers; she touches things with the very front of her body or her wing edge",
     "dull or drab moth colouring"
   ],
   "habit": "her antennae curl in and the tips glow a little brighter when she is delighted",

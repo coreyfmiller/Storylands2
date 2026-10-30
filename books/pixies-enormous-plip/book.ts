@@ -31,16 +31,27 @@ export const CHARACTER_REFS: Record<string, string> = {
 /** Short on-model description, written into the prompt alongside the reference. */
 export const CHARACTER_BIOS: Record<string, string> = {
   pixie:
-    'Pixie, a cute small butterfly: a soft cream-and-tan furry body with darker brown markings down her abdomen, large rounded wings patterned in lilac-purple, pale blue and cream with soft yellow spots, fine pink-red veining and a thin warm gold edge, two long curling gold antennae each tipped with a tiny point of light, a small round cream face with very large dark eyes ringed in amber, soft eyelashes, rosy cheeks and a tiny smiling mouth, and two small teardrop-shaped tails hanging from her lower wings',
+    'Pixie, a cute small butterfly: her whole body is ONE smooth tapered furry cream-and-tan abdomen that narrows to a point, with darker brown markings along it, and she has NO legs, NO feet and NO hands of any kind; large rounded wings patterned in lilac-purple, pale blue and cream with soft yellow spots, fine pink-red veining and a thin warm gold edge; two long curling gold antennae each tipped with a tiny point of light; a small round cream face with very large dark eyes ringed in amber, soft eyelashes, rosy cheeks and a tiny smiling mouth; two small teardrop-shaped tails hanging from her lower wings. She always hovers in the air or perches lightly on a surface, and never stands or walks.',
   tilly:
     'Tilly, a small brown owl: soft mottled brown and buff feathers with a paler speckled chest, large round amber-gold eyes, tufted ears, a small grey-black hooked beak and a calm, gently knowing expression; she is roughly the same height as Nibs',
 }
 
 // Never allowed in any illustration in this book. The first two are product rules:
 // all words live in the reader's text panel, and a blank sign looks like broken art.
+//
+// The anatomy rules were added after the first pass: review-art.mjs found Pixie
+// drawn with mammal hind legs, standing on the ground and gripping things with
+// hand-like paws on seven of thirteen pages. Her reference sheet has a tapered
+// abdomen and no legs at all. Describing what she HAS was not enough; the model
+// needed to be told what she must not be given.
 const forbiddenAlways = [
   'any text, words, letters, numbers, or title in the image',
   'any sign, signpost, board, placard, label, or plaque',
+  'ANY legs, feet, paws, hind legs, knees or toes on Pixie',
+  'Pixie standing on the ground, walking, or bearing her weight on legs',
+  'a mammal-like or squat body on Pixie; her body is one tapered abdomen, not a torso with limbs',
+  'hands or fingers on Pixie',
+  'any of Pixie\u2019s four wings cut off by the edge of the picture',
 ]
 
 const rawBook: Book = {

@@ -216,9 +216,16 @@ async function main() {
   }
 
   if (generated > 0) {
-    // The reader loads .webp. A fresh PNG render is ~2.3 MB and is not served at
-    // all until converted, so this is the required next step.
-    console.log('\nNext: node scripts/optimize-books.mjs --prune')
+    // Convert, then REVIEW, then prune. Pruning first destroys the only copy of
+    // the uncropped render, which is the evidence for whether a page the
+    // reviewer calls "clipped" was framed badly by the model or cropped badly
+    // by us. That happened on the first strict book and the answer is still
+    // unknown, because the PNGs were already gone.
+    console.log('\nNext, in this order:')
+    console.log('  node scripts/optimize-books.mjs')
+    console.log(`  node scripts/review-art.mjs --book ${slugs.join(' --book ')}`)
+    console.log('  ...re-roll anything flagged, then prune:')
+    console.log('  node scripts/optimize-books.mjs --prune')
   }
 }
 

@@ -27,12 +27,23 @@
  */
 export const PAGE_ASPECT = '3:2'
 
+/**
+ * How much of the width survives on the narrowest device.
+ *
+ * A 1.5 render shown in a region of about 1.03 — which is what a 390x844 phone
+ * gives — keeps 1.03/1.5 of the width, so roughly two thirds. The brief has to
+ * say so: the first landscape book was reported as having clipped wings on six
+ * of thirteen pages, and every one of those renders had margin to spare. The
+ * art was fine and the frame was a third narrower than the illustrator thought.
+ */
+export const SAFE_WIDTH_FRACTION = 0.68
+
 export const STYLE = [
   'Warm, hand-crafted storybook illustration for a childrens picture book (ages 4-7).',
   'Rich but gentle color, soft natural light, expressive and characterful.',
   'Full-bleed HORIZONTAL composition, wider than it is tall, like the picture across the top of a picture-book page.',
-  // Only the sides are trimmed, so that is the only place margin is needed.
-  'CRITICAL FRAMING: a narrow strip will be trimmed from the LEFT and RIGHT edges, so keep the subject and all important detail (heads, ears, faces, paws, the key action) clear of the left and right edges, with background to spare on both sides. Use the full height of the frame: the top and bottom are NOT trimmed, so heads do not need extra headroom. Do not place anything important hard against a side edge.',
+  // Only the sides are trimmed, and on a narrow phone a LOT of them are.
+  `CRITICAL FRAMING: on a phone the left and right edges of this picture are cropped away, and only the middle ${Math.round(SAFE_WIDTH_FRACTION * 100)}% of its width is reliably visible. Compose the entire beat inside that central band: the characters, their wings, ears, paws and the key action must all sit within the middle of the frame, with generous background to spare on the left and the right. Treat the outer sixth of each side as scenery that will be thrown away. Use the FULL height — the top and bottom are not cropped, so no extra headroom is needed. Nothing important may touch or approach a left or right edge.`,
   'IMPORTANT: absolutely NO text, letters, words, numbers, titles, or signage lettering anywhere in the image.',
   'Keep every character EXACTLY on-model with its provided reference image: same species, same fur/feather color and pattern, same eyes, same proportions, same apparent age.',
 ].join(' ')

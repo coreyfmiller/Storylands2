@@ -147,6 +147,38 @@ function PageText({
   )
 }
 
+/**
+ * Shown where a page's illustration does not exist yet.
+ *
+ * Deliberately designed rather than left to the browser. A book on the staging
+ * shelf is read before its art is paid for, so this is a state a real reader
+ * sees — it should look like a page waiting for its picture, not like something
+ * broke.
+ */
+function ArtPending() {
+  return (
+    <div className="absolute inset-0 grid place-items-center bg-gradient-to-b from-[#2a2320] to-[#1a1512]">
+      <div className="flex flex-col items-center gap-2 px-6 text-center">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.25"
+          className="h-7 w-7 text-white/30"
+          aria-hidden
+        >
+          <rect x="3" y="4" width="18" height="16" rx="2" />
+          <circle cx="8.5" cy="9.5" r="1.5" />
+          <path d="M21 16l-5-5-7 7" />
+        </svg>
+        <span className="text-[11px] uppercase tracking-[0.2em] text-white/35">
+          Illustration coming
+        </span>
+      </div>
+    </div>
+  )
+}
+
 const COVER = -1
 
 export function BookReader({ book, slug }: { book: Book; slug?: string }) {
@@ -165,6 +197,13 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
   const page = stage === "page" ? book.pages[index] : null
 
   const { size, setBox, probeRef } = useBookTextSize(book.pages)
+
+  // Reset per page: a book part-way through illustration has some pages drawn
+  // and some not, so one missing file must not blank the rest.
+  const [artFailed, setArtFailed] = useState(false)
+  useEffect(() => {
+    setArtFailed(false)
+  }, [index])
   const segments = useMemo(() => (page ? segmentsOf(page.text) : []), [page])
 
   // Auto-turn when the narration reaches the end of a page. This is what lets a
@@ -396,7 +435,7 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
               key={page.page}
               className="reader-art relative min-h-0 flex-[9] overflow-hidden bg-black animate-fade-in"
             >
-              {page.art ? (
+              {page.art && !artFailed ? (
                 <Image
                   src={`/${page.art}`}
                   /* In a picture book the illustration carries half the story, so
@@ -406,11 +445,15 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
                   priority
                   sizes="(min-width: 768px) 56vh, 100vw"
                   className="object-cover"
+                  /* A book whose art has not been generated yet still has an art
+                     PATH — pageArt() always returns one — so the file 404s and
+                     the browser renders the alt text sprawled across the top of
+                     the screen, over the close button. Checking `page.art` was
+                     never enough; the failure has to be caught at load. */
+                  onError={() => setArtFailed(true)}
                 />
               ) : (
-                <div className="absolute inset-0 grid place-items-center bg-neutral-900 text-white/40">
-                  <span className="text-sm">illustration pending</span>
-                </div>
+                <ArtPending />
               )}
               <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[#f4e9d6] to-transparent" />
             </div>

@@ -45,12 +45,14 @@ The hard rules, in order of how badly they hurt:
 4. NOTHING CLIPPED. This image is already the final crop; the reader displays it as-is and will not cut it further. So judge what you can see: is any important thing — a head, an ear, a paw, a tail, the key action — cut off by the edge of this picture, or jammed so tight against an edge that it looks like an accident? A subject deliberately running out of frame for composition is fine; a head with its top sliced off is not.
 5. THE BRIEF. The required facts should be present and the forbidden ones absent.
 
+Keep the two kinds of problem apart. Rules 1 to 4 are failures: they make the book wrong and the page has to be drawn again. Rule 5 is usually a detail — a droplet in a slightly different place, two characters looking at each other rather than at a leaf, a prop smaller than described. Put those in the notes field, not the problems field, and do not let them set the verdict. Only answer "reroll" when one of rules 1 to 4 is broken.
+
 Be concise. One short sentence per problem.`
 
 const schema = {
   type: 'object',
   additionalProperties: false,
-  required: ['verdict', 'hasText', 'hasSignage', 'onModel', 'safeArea', 'problems', 'note'],
+  required: ['verdict', 'hasText', 'hasSignage', 'onModel', 'safeArea', 'problems', 'notes', 'note'],
   properties: {
     verdict: {
       type: 'string',
@@ -64,7 +66,16 @@ const schema = {
       type: 'boolean',
       description: 'true when nothing important is clipped or jammed against an edge',
     },
-    problems: { type: 'array', items: { type: 'string' } },
+    problems: {
+      type: 'array',
+      items: { type: 'string' },
+      description: 'Only breaches of rules 1-4. These force a re-roll.',
+    },
+    notes: {
+      type: 'array',
+      items: { type: 'string' },
+      description: 'Small differences from the brief. Worth a glance, never a re-roll.',
+    },
     note: { type: 'string', description: 'one short line on what the picture shows' },
   },
 }
@@ -173,12 +184,15 @@ async function reviewBook(slug) {
         !r.safeArea ? 'CLIPPED' : '',
       ].filter(Boolean)
 
-      if (r.verdict === 'reroll' || flags.length) {
+      // Only the four hard rules force a re-roll. A droplet in the wrong place
+      // is not worth a dollar and a new composition.
+      if (flags.length) {
         bad.push(page.page)
         console.log(`  page ${page.page}: REROLL  ${flags.join(' ')}`)
         for (const p of r.problems.slice(0, 4)) console.log(`      ${p}`)
       } else {
-        console.log(`  page ${page.page}: pass    ${r.note.slice(0, 70)}`)
+        console.log(`  page ${page.page}: pass    ${r.note.slice(0, 66)}`)
+        for (const n of (r.notes ?? []).slice(0, 2)) console.log(`      note: ${n}`)
       }
     } catch (e) {
       console.error(`  page ${page.page}: review failed — ${String(e.message).slice(0, 160)}`)

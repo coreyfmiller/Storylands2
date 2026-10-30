@@ -38,26 +38,27 @@ const QUALITY = 72
 const HEIGHT = Math.round(WIDTH / READER_ART_ASPECT)
 
 /**
- * Centre, deliberately.
+ * No crop. Fit the render inside the target box and keep its shape.
  *
- * `sharp.strategy.attention` looks like the clever choice and is the wrong one:
- * it picks the most salient band, and on a standing character in a wide frame
- * that band sits below the ears, so it cropped the top of Nibs's head clean off.
- * Centre is also exactly what the browser's `object-cover` was already doing, so
- * moving the crop here changes no pixel a child sees — it only stops shipping
- * the 47% that was being downloaded and discarded.
+ * Cropping here was tried twice and was wrong both times. `attention` took the
+ * top off Nibs's head. A fixed centre crop to 1.25 then clipped wings on six of
+ * thirteen pages of the first landscape book, because the reader's picture
+ * region is NOT a fixed shape — it depends on the viewport, and on a narrow
+ * phone it is nearer 1.03 than 1.25, so the browser cropped the cropped file.
  *
- * The real fix for losing too much is upstream: generate LANDSCAPE page art, so
- * the crop takes 17% of side background instead of 47% of height. See the
- * aspect note in scripts/lib/compile-prompt.mjs.
+ * The render already matches READER_ART_ASPECT, so there is nothing to trim.
+ * `object-cover` handles the per-device difference, which is its job, and the
+ * prompt tells the illustrator to keep the beat inside the central band that
+ * survives on the narrowest screen.
  */
-const CROP_POSITION = 'centre'
+const FIT = 'inside'
 
 const force = process.argv.includes('--force')
 const prune = process.argv.includes('--prune')
 /** Re-crop already-converted pages whose aspect no longer matches the reader. */
 const recrop = process.argv.includes('--recrop')
 let recropped = 0
+let skippedShape = 0
 
 async function exists(path) {
   try {
@@ -104,7 +105,7 @@ for (const slug of slugs) {
     }
 
     await sharp(src)
-      .resize({ width: WIDTH, height: HEIGHT, fit: 'cover', position: CROP_POSITION })
+      .resize({ width: WIDTH, height: HEIGHT, fit: FIT, withoutEnlargement: true })
       .webp({ quality: QUALITY })
       .toFile(out)
     after += (await stat(out)).size
@@ -129,13 +130,14 @@ for (const slug of slugs) {
       const aspect = meta.width / meta.height
       if (Math.abs(aspect - READER_ART_ASPECT) < 0.01) continue
 
-      const height = Math.round(meta.width / READER_ART_ASPECT)
-      const cropped = await sharp(source)
-        .resize({ width: meta.width, height, fit: 'cover', position: CROP_POSITION })
-        .webp({ quality: QUALITY })
-        .toBuffer()
-      await writeFile(target, cropped)
-      recropped += 1
+      // Portrait pages from the first seven books cannot be reshaped into
+      // landscape without inventing picture, so they are left alone and simply
+      // reported. They are cropped by the browser, as they always were.
+      console.warn(
+        `  ${slug}/${file} is ${aspect.toFixed(2)}, not ${READER_ART_ASPECT.toFixed(2)};` +
+          ` regenerate the book to get landscape art`,
+      )
+      skippedShape += 1
     }
   }
 
@@ -155,6 +157,6 @@ for (const slug of slugs) {
 }
 
 console.log(
-  `${converted} converted, ${skipped} already done, ${recropped} re-cropped, ${pruned} PNGs pruned` +
+  `${converted} converted, ${skipped} already done, ${recropped} re-cropped, ${skippedShape} wrong shape, ${pruned} PNGs pruned` +
     (before ? `: ${(before / 1e6).toFixed(1)}MB PNG -> ${(after / 1e6).toFixed(1)}MB WebP` : ''),
 )
