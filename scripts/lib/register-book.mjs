@@ -82,7 +82,7 @@ function fieldOf(entryText, key) {
  *    book that exists.
  *  - The character is new to the catalog: insert a fresh entry.
  */
-export async function registerInCatalog({ slug, book, story }) {
+export async function registerInCatalog({ slug, book, story, shelf }) {
   const file = path.join(ROOT, 'lib', 'catalog.ts')
   let source = await readFile(file, 'utf8')
 
@@ -122,7 +122,7 @@ export async function registerInCatalog({ slug, book, story }) {
     kicker: "A Storylands Original",
     hook: ${JSON.stringify(story?.hook ?? book.subtitle)},
     synopsis: ${JSON.stringify(story?.synopsis ?? book.subtitle)},
-    readerSlug: "${slug}",
+    readerSlug: "${slug}",${shelf ? `\n    shelf: "${shelf}",` : ''}
     landscape: "/characters/${book.character}.webp",
     portrait: "/characters/${book.character}.webp",
     ages: ${JSON.stringify(book.ages)},

@@ -27,7 +27,7 @@
 //   node scripts/generate-book.mjs --book <slug>
 //   node scripts/optimize-books.mjs --prune
 
-import { writeFile, mkdir, access, readFile } from 'node:fs/promises'
+import { writeFile, mkdir, access, readFile, readdir } from 'node:fs/promises'
 import path from 'node:path'
 import { loadEnv } from './lib/load-env.mjs'
 import { getTextProvider } from './lib/provider.mjs'
@@ -51,6 +51,14 @@ const PAGES = Number(value('pages') ?? 13)
 const ATTEMPTS = Number(value('attempts') ?? 3)
 const DRY = flag('dry-run')
 const FORCE = flag('force')
+/**
+ * The strict bar is the default for anything new.
+ *
+ * All seven original books pass the loose bar and an audit of them found the
+ * loose bar is most of why they are only as good as they are. --loose exists
+ * for regenerating one of those, not for writing something new.
+ */
+const STRICT = !flag('loose')
 const WITH = (value('with') ?? '').split(',').map((s) => s.trim()).filter(Boolean)
 
 
@@ -65,23 +73,48 @@ async function exists(p) {
 }
 
 /**
- * Gather the cast from the books already on disk.
+ * Everyone who has approved reference art.
  *
- * CHARACTER_REFS and CHARACTER_BIOS live next to the books that use them, so the
- * set of characters who have approved reference art is exactly the union across
- * every book. That keeps one place to add a character: ship a book with them.
+ * Two sources, and the second one matters:
+ *
+ *  - The books on disk. CHARACTER_REFS and CHARACTER_BIOS live beside the books
+ *    that use them, so every character in a shipped book is known.
+ *  - assets/characters/bibles/*.json, written by new-character.mjs.
+ *
+ * Reading only the books was a dead end for exactly the case the engine exists
+ * to serve: a brand-new character is in no book yet, so deriving the cast from
+ * books meant a new character could never be cast in their first one. Pixie hit
+ * this the moment she was approved.
  */
 async function knownCast() {
-  const all = await loadAllBooks()
   const refs = {}
   const bios = {}
   const titlesByCharacter = {}
-  for (const { book, refs: r, bios: b } of all) {
+
+  for (const { book, refs: r, bios: b } of await loadAllBooks()) {
     Object.assign(refs, r)
     Object.assign(bios, b)
     titlesByCharacter[book.character] ??= []
     titlesByCharacter[book.character].push(book.title)
   }
+
+  // Bibles win: they are the record of the approval, and they carry the bio
+  // that was written against the sheet that was actually approved.
+  const bibleDir = path.join(ASSETS_DIR, 'characters', 'bibles')
+  try {
+    for (const file of await readdir(bibleDir)) {
+      if (!file.endsWith('.json')) continue
+      const bible = JSON.parse(await readFile(path.join(bibleDir, file), 'utf8'))
+      const id = bible.id ?? path.basename(file, '.json')
+      const sheet = path.join(ASSETS_DIR, 'characters', `${id}.png`)
+      if (!(await exists(sheet))) continue
+      refs[id] = `characters/${id}.png`
+      if (bible.bio) bios[id] = bible.bio
+    }
+  } catch {
+    // No bibles directory yet is normal.
+  }
+
   return { refs, bios, titlesByCharacter }
 }
 
@@ -151,6 +184,7 @@ async function main() {
     pages: PAGES,
     notes: value('notes'),
     maxAttempts: ATTEMPTS,
+    strict: STRICT,
     onAttempt: (n, max, errors) => {
       if (!errors) console.log(`attempt ${n}/${max}: authoring...`)
       else {
@@ -166,7 +200,7 @@ async function main() {
   const slug = value('slug') ?? slugify(book.title)
   book.id = slug
 
-  const { errors, stats } = validateBook({ book, refs, bios })
+  const { errors, stats } = validateBook({ book, refs, bios, strict: STRICT })
   if (errors.length) throw new Error(`post-slug validation failed:\n${errors.join('\n')}`)
 
   console.log(`\n"${book.title}" — ${book.subtitle}`)
@@ -221,7 +255,9 @@ async function main() {
   const idx = await registerInIndex(slug)
   console.log(idx.changed ? '  registered in books/index.ts' : '  books/index.ts already had it')
 
-  const cat = await registerInCatalog({ slug, book })
+  // Strict books land on the staging shelf at /newbooks, never straight onto a
+  // child's library. --loose is only for regenerating one of the originals.
+  const cat = await registerInCatalog({ slug, book, shelf: STRICT ? 'new' : undefined })
   console.log(cat.changed ? '  added to lib/catalog.ts' : `  lib/catalog.ts: ${cat.reason}`)
 
   console.log(

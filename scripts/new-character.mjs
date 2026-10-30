@@ -225,14 +225,74 @@ async function approve() {
   console.log(`\nThen: node scripts/create-book.mjs --character <lead> --with ${ID} --premise "..."`)
 }
 
+/**
+ * Turn existing cover art into a clean reference sheet.
+ *
+ * Cover art has the character's name and tagline painted into it, and the
+ * reference is what seeds EVERY page of every book. The seven original
+ * characters all use their cover as their reference, so the text is in the seed
+ * on every single call, held back only by the prompt insisting on no text. It
+ * has worked, and it is the model being asked to ignore what it is looking at.
+ *
+ * So for a new character: keep the cover as the cover, and derive a textless
+ * sheet from it for generation. Same character, nothing to ignore.
+ */
+async function fromCover() {
+  if (!ID) throw new Error('Pass --id <id>')
+  const cover = value('from-cover')
+  const coverPath = path.isAbsolute(cover) ? cover : path.join(ROOT, cover)
+  if (!(await exists(coverPath))) throw new Error(`No cover at ${coverPath}`)
+
+  const provider = getImageProvider(value('image-provider'))
+  console.log(`Images: ${provider.name} / ${provider.model}`)
+  await mkdir(DRAFT_DIR, { recursive: true })
+
+  const prompt = [
+    'A clean character reference sheet for a childrens picture book, in exactly the same art style as the reference image.',
+    'Draw the SAME character from the reference image: identical species, identical colours, identical markings and wing or fur pattern, identical eyes, identical proportions. This is the same individual, not a similar one.',
+    'Pose: the whole character, head to foot, facing the viewer, relaxed and friendly, clearly lit.',
+    'Background: a completely plain, flat, pale neutral background. No scenery, no flowers, no trees, no sky, no props, no other characters.',
+    'ABSOLUTELY NO TEXT of any kind: no title, no name, no words, no letters, no numbers, no logo, no lettering anywhere in the image. The reference image has words written on it; this one must have none.',
+    'Nothing else in the frame but the character on the plain background.',
+  ].join(' ')
+
+  const n = Number(value('candidates') ?? CANDIDATES)
+  for (let i = 1; i <= n; i++) {
+    const out = path.join(DRAFT_DIR, `${ID}-${i}.png`)
+    process.stdout.write(`candidate ${i}/${n} ... `)
+    try {
+      const { b64 } = await provider.generateImage({
+        prompt,
+        referencePaths: [coverPath],
+        aspectRatio: '2:3',
+      })
+      await writeFile(out, Buffer.from(b64, 'base64'))
+      console.log('OK')
+    } catch (e) {
+      console.log(`FAILED — ${String(e.message).slice(0, 160)}`)
+    }
+  }
+
+  console.log(
+    `\nCandidates in assets/characters/drafts/. Pick the one that is most ON-MODEL\n` +
+      `against the cover and has no text at all:\n` +
+      `  node scripts/new-character.mjs --id ${ID} --approve <n>`,
+  )
+}
+
 async function main() {
   await loadEnv()
   if (value('describe')) return describe()
+  if (value('from-cover')) return fromCover()
   if (flag('sheet')) return sheet()
   if (value('approve')) return approve()
 
-  console.error('One of: --describe "<idea>" | --sheet | --approve <n>')
-  console.error('Always with --id <id> after the first step.')
+  console.error('One of:')
+  console.error('  --describe "<idea>"        design a character from scratch')
+  console.error('  --from-cover <path>        derive a textless sheet from existing cover art')
+  console.error('  --sheet                    generate candidates from a bible')
+  console.error('  --approve <n>              install a candidate as the master')
+  console.error('Always with --id <id>.')
   process.exit(1)
 }
 

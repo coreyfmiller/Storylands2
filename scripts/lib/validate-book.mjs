@@ -69,9 +69,85 @@ const DECLARED_WORDLESS =
 /** The two forbidden-fact rules every page must carry. */
 const REQUIRED_FORBIDDEN = [/text|words|letters/i, /sign|placard|plaque/i]
 
-/** Narration that tells the reader the moral instead of showing it. */
-const PREACHY =
-  /\b(the (?:lesson|moral) (?:is|was)|learned that (?:being|sharing|kindness)|remember(?:ed)? to always|it is important to|you should always|and that is why you)\b/i
+/**
+ * Prose that TELLS the reader the point instead of showing it.
+ *
+ * product-standard.md is unambiguous: show what changed, never state the moral.
+ * The first version of this check was far too narrow — it looked for "the lesson
+ * is" and "learned that being", and let through five of the seven books in the
+ * library, every one of them on its final page:
+ *
+ *   Rusty:  "But Rusty had learned something: even the biggest feelings get
+ *            smaller when you are gentle — and kindness, it turns out, makes
+ *            the whole world feel just the right size."
+ *   Finn:   "big dreams are just small splashes, one after another"
+ *   Lumi:   "She had learned something brighter than any lantern."
+ *   Pip:    "it had come from his own big heart."
+ *   Maple:  "Maybe brave didn't mean never being scared. Maybe brave meant
+ *            looking anyway."
+ *
+ * The two books that DON'T do it — Oliver and Nibs — are the two best books and
+ * the two funniest. That is not a coincidence, and it is why this check is now
+ * wide enough to hurt.
+ *
+ * These patterns are deliberately aggressive. False positives are cheap: the
+ * fix is to rewrite one sentence so it shows instead. A false negative ships a
+ * sermon to a four-year-old.
+ */
+const PREACHY = [
+  // Naming the act of learning at all.
+  /\b(?:had |has |have )?learn(?:ed|t|s)? (?:that|something|a lesson|the|how)\b/i,
+  /\b(?:the|a|one) (?:lesson|moral|secret|truth)\b/i,
+  /\bnow (?:he|she|they|we) knew\b/i,
+  /\b(?:he|she|they) understood (?:that|why|at last)\b/i,
+  // Definitional sentences: "brave meant", "kindness is", "being X means Y".
+  /\b(?:brave|bravery|kind|kindness|courage|friendship|sharing|love|caring)\s+(?:is|was|means?|meant|didn[’']?t mean|does not mean|doesn[’']?t mean)\b/i,
+  /\bmaybe\s+\w+\s+(?:didn[’']?t mean|meant|means)\b/i,
+  // The narrator stepping in to summarise.
+  /\bit turn(?:s|ed) out\b/i,
+  /\b(?:and )?that(?:'s| is| was) (?:why|how|when) (?:you|we|he|she|they)\b/i,
+  /\bbecause\s+\w+(?:['’]s)?\s+\w*\s*(?:was|is)\s+(?:small|big|the biggest|the smallest)\b/i,
+  // Instructional address to the reader.
+  /\b(?:remember(?:ed)? to always|it is important to|you should always|always remember)\b/i,
+  // "X is just Y, one after another" style aphorisms.
+  /\b(?:are|is) just \w+(?:\s+\w+)?, one after another\b/i,
+]
+
+function preachyHit(text) {
+  for (const rule of PREACHY) {
+    const m = rule.exec(text)
+    if (m) return m[0]
+  }
+  return null
+}
+
+/**
+ * Minimum pages carrying a spoken line.
+ *
+ * Dialogue is what a parent performs out loud, and it is most of why a book gets
+ * asked for twice. Five of the seven existing books have one or two spoken lines
+ * in thirteen pages; Nibs, which has the most, is the best of them.
+ *
+ * Set at three rather than four on purpose. Oliver vs. The Vacuum has NO
+ * dialogue at all and is one of the two best books in the library — it works as
+ * a comic narrator monologue, which is a real picture-book form. So this rule is
+ * not "dialogue makes a book good".
+ *
+ * It is here because the strict bar exists to produce SERIES-capable books, and
+ * a series needs a cast: a named second character who turns up, says something,
+ * and could come back. Oliver's form cannot do that, which is why Oliver is a
+ * fine book and is not the model for what comes next.
+ */
+const MIN_DIALOGUE_PAGES = 3
+
+/**
+ * How even the pages have to be, in strict mode.
+ *
+ * The reader picks ONE type size per book, set by the longest page, so an uneven
+ * book renders small throughout. Nibs spans 27 words and reads at 24px where it
+ * could read at 34.
+ */
+const STRICT_SPREAD = 12
 
 export function wordCount(text) {
   return String(text).trim().split(/\s+/).filter(Boolean).length
@@ -91,9 +167,26 @@ export function paragraphCount(text) {
  *   but not worth refusing a book over — a 46-word page is outside the
  *   comfortable band and still well inside the ceiling.
  */
-export function validateBook({ book, refs = {}, bios = {} }) {
+/**
+ * Check a book against every mechanical rule.
+ *
+ * @param {object} opts
+ * @param {boolean} [opts.strict] Hold it to the second-generation bar.
+ *
+ *   The seven original books all pass the loose bar and are, on honest reading,
+ *   only as good as that bar. Strict mode encodes what an audit of them found
+ *   missing: no stated morals, a named second character who speaks and who is
+ *   absent from some pages so they can arrive, real dialogue, varied framing,
+ *   varied sentence openings, and even page lengths so the type renders large.
+ *
+ *   New books are strict. The originals stay loose so they keep loading, and
+ *   their shortfalls show up as warnings instead.
+ */
+export function validateBook({ book, refs = {}, bios = {}, strict = false }) {
   const errors = []
   const warnings = []
+  /** In strict mode a shortfall blocks; otherwise it is advice. */
+  const fail = (message) => (strict ? errors : warnings).push(message)
 
   for (const field of ['id', 'title', 'subtitle', 'character', 'ages']) {
     if (!book?.[field] || typeof book[field] !== 'string') {
@@ -102,6 +195,26 @@ export function validateBook({ book, refs = {}, bios = {} }) {
   }
   if (book?.id && !/^[a-z0-9]+(-[a-z0-9]+)*$/.test(book.id)) {
     errors.push(`book.id "${book.id}" must be a kebab-case slug — it is also the reader route`)
+  }
+
+  // The subtitle is a thesis statement more often than the prose is.
+  //
+  // "A very big morning begins with something very small." is the moral, moved
+  // to the cover. Rusty's and Lumi's painted taglines do the same thing, and a
+  // character tagline has to work for every book they are ever in — a moral
+  // only works for one, which is why those two covers cannot head a series.
+  // A subtitle should describe the CHARACTER or tease the situation.
+  if (book?.subtitle) {
+    const hit = preachyHit(book.subtitle)
+    const aphorism =
+      /\b(?:begins with|starts with|is just|are just|goes a long way|makes? (?:the|a) (?:whole |bigger |world))\b/i.exec(
+        book.subtitle,
+      )
+    if (hit || aphorism) {
+      fail(
+        `the subtitle states the story's point ("${(hit ?? aphorism)[0]}") — a subtitle should describe the character or tease the situation, so it still works for their next book`,
+      )
+    }
   }
   if (typeof book?.minutes !== 'number' || book.minutes <= 0) {
     errors.push('book.minutes must be a positive number')
@@ -144,8 +257,27 @@ export function validateBook({ book, refs = {}, bios = {} }) {
     if (para > PARAGRAPH_CEILING) {
       errors.push(`${where}: ${para} paragraphs, ceiling is ${PARAGRAPH_CEILING}`)
     }
-    if (PREACHY.test(p.text)) {
-      errors.push(`${where}: states the moral instead of showing it`)
+    // Two speakers sharing one paragraph. A parent reading aloud has no cue
+    // that the voice changed, and a child following the words sees one person
+    // answering themselves.
+    for (const para of String(p.text).split(/\n\s*\n+/)) {
+      const quotes = (para.match(/[\u201c"]/g) ?? []).length
+      if (quotes >= 4 && /[\u201d"]\s+[\u201c"]/.test(para)) {
+        fail(
+          `${where}: two speakers share one paragraph; give each their own line so a read-aloud has somewhere to change voice`,
+        )
+        break
+      }
+    }
+
+    const preachy = preachyHit(p.text)
+    if (preachy) {
+      const message = `${where}: tells the reader the point instead of showing it — "${preachy}"`
+      // A warning on the seven books that predate this check, an error for
+      // anything held to the current bar. Rewriting five shipped endings is an
+      // editorial job, not something a validator should do by refusing to load.
+      if (strict) errors.push(message)
+      else warnings.push(message)
     }
 
     const m = p.manifest
@@ -227,8 +359,8 @@ export function validateBook({ book, refs = {}, bios = {} }) {
 
   if (haveShots === 0) {
     // The first seven books predate shotType, so its absence is a warning for
-    // them and an error for anything that has started using it.
-    warnings.push('no page declares a shotType, so nothing is varying the framing')
+    // them and an error for anything held to the current bar.
+    fail('no page declares a shotType, so nothing is varying the framing')
   } else {
     if (haveShots < pages.length) {
       errors.push(
@@ -296,7 +428,61 @@ export function validateBook({ book, refs = {}, bios = {} }) {
   }
   for (const [word, n] of Object.entries(openers)) {
     if (n > OPENER_LIMIT) {
-      warnings.push(`${n} pages open with "${word}"; vary the sentence openings`)
+      fail(`${n} pages open with "${word}"; vary the sentence openings`)
+    }
+  }
+
+  // ---- a second character who speaks, and who arrives ---------------------
+  //
+  // The audit's clearest finding. In five of the seven books the protagonist is
+  // alone and the "friend" is a glow-moth, a dragonfly, a silent owl, a
+  // hedgehog, a firefly — unnamed, barely speaking, incapable of returning.
+  // Nibs is the only book with a real second character, and it is the best
+  // book. It is also why there is no series: there is no cast.
+  if (strict) {
+    const supportingLeads = Object.keys(refs).filter((c) => c !== book.character)
+    const onPages = (c) =>
+      pages.filter((p) => (p.manifest?.charactersPresent ?? []).includes(c)).length
+
+    const present = supportingLeads.filter((c) => onPages(c) > 0)
+    if (present.length === 0) {
+      errors.push(
+        'no second character with reference art appears; the protagonist is alone for the whole book',
+      )
+    }
+    for (const c of present) {
+      const n = onPages(c)
+      if (n === pages.length) {
+        errors.push(
+          `"${c}" is on every page, so they can never arrive — the spine turns on a friend arriving to ask the question`,
+        )
+      }
+      if (n < 3) {
+        errors.push(
+          `"${c}" appears on only ${n} page(s); a second character needs enough room to matter`,
+        )
+      }
+    }
+
+    // Dialogue, counted by pages that contain a spoken line.
+    const spoken = (p) => /[\u201c"][^\u201d"]{3,}[\u201d"]/.test(p.text)
+    const speaking = pages.filter(spoken).length
+    if (speaking < MIN_DIALOGUE_PAGES) {
+      errors.push(
+        `only ${speaking} page(s) carry a spoken line; at least ${MIN_DIALOGUE_PAGES} should — a series needs a cast that talks`,
+      )
+    }
+
+    // The second character has to actually say something on a page they are on.
+    // Present-but-silent is how the existing books ended up with a glow-moth
+    // instead of a friend.
+    for (const c of present) {
+      const theirPages = pages.filter((p) => (p.manifest?.charactersPresent ?? []).includes(c))
+      if (!theirPages.some(spoken)) {
+        errors.push(
+          `"${c}" never speaks on any page they appear on; a silent companion cannot ask the question the spine turns on`,
+        )
+      }
     }
   }
 
@@ -324,10 +510,13 @@ export function validateBook({ book, refs = {}, bios = {} }) {
   // at 24px on a phone while its shortest pages would carry 34. Twenty is tight
   // on purpose — this is the warning that protects how the book actually reads.
   const spread = words.length ? Math.max(...words) - Math.min(...words) : 0
-  if (spread > 20) {
-    warnings.push(
-      `word counts span ${spread} (${Math.min(...words)}-${Math.max(...words)}); the longest page sets the type size for the WHOLE book, so evening these out makes every page bigger`,
-    )
+  const spreadLimit = strict ? STRICT_SPREAD : 20
+  if (spread > spreadLimit) {
+    const message =
+      `word counts span ${spread} (${Math.min(...words)}-${Math.max(...words)}); the longest page sets ` +
+      `the type size for the WHOLE book, so evening these out makes every page bigger`
+    if (strict) errors.push(message)
+    else warnings.push(message)
   }
 
   return {

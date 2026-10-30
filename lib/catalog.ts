@@ -23,6 +23,16 @@ export type Story = {
   genres: string[]
   tags: string[]
   seriesId?: string
+  /**
+   * Which shelf this book belongs on.
+   *
+   * `"new"` is the staging shelf at /newbooks: the second generation, written
+   * against the strict bar in scripts/lib/validate-book.mjs. The seven original
+   * books all pass the loose bar and all fail the strict one, which is most of
+   * what an audit of them concluded — so new work is kept separate until it is
+   * clearly better, rather than mixed in and hoped for.
+   */
+  shelf?: "new"
   /** OKLCH color used for atmospheric hero/detail theming */
   glow: string
   tint: string
@@ -40,6 +50,25 @@ export type Series = {
 }
 
 export const stories: Story[] = [
+  {
+    id: "pixies-enormous-plip",
+    title: "Pixie's Enormous Plip",
+    kicker: "A Storylands Original",
+    hook: "One enormous plan. One very small pond.",
+    synopsis: "One enormous plan. One very small pond.",
+    readerSlug: "pixies-enormous-plip",
+    shelf: "new",
+    landscape: "/characters/pixie.webp",
+    portrait: "/characters/pixie.webp",
+    ages: "Ages 4+",
+    targetAge: 5,
+    band: "young",
+    minutes: 5,
+    genres: ["Heart"],
+    tags: ["heart","quick"],
+    glow: "oklch(0.82 0.12 74)",
+    tint: "oklch(0.34 0.05 70)",
+  },
   // ---------- YOUNGER · approx 5–7 ----------
   {
     id: "pip",
@@ -235,6 +264,16 @@ export function storyByReaderSlug(slug: string) {
   return stories.find((s) => s.readerSlug === slug)
 }
 
+/** The second-generation shelf, shown at /newbooks. */
+export function newShelf(): Story[] {
+  return stories.filter((s) => s.shelf === "new")
+}
+
+/** Everything on the main shelf. */
+export function mainShelf(): Story[] {
+  return stories.filter((s) => s.shelf !== "new")
+}
+
 type ShelfDef = {
   title: string
   layout?: "landscape" | "portrait"
@@ -307,7 +346,9 @@ const shelfDefs: ShelfDef[] = [
 export const RICH_SHELVES_THRESHOLD = 20
 
 export function poolForBands(bands: Band[]): Story[] {
-  return stories.filter((s) => bands.includes(s.band))
+  // The staging shelf is deliberately excluded from the main library, so an
+  // unproven book never turns up on a child's shelf by accident.
+  return mainShelf().filter((s) => bands.includes(s.band))
 }
 
 export function shouldUseRichShelves(bands: Band[]): boolean {

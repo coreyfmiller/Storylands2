@@ -35,3 +35,18 @@ describe('slugify', () => {
     }
   })
 })
+
+describe('long titles', () => {
+  // A flat truncation kept the filler and threw away the noun.
+  test('squeezes out small words rather than cutting the subject', () => {
+    assert.equal(
+      slugify('Pixie and the Enormous Little Rainbow'),
+      'pixie-enormous-little-rainbow',
+    )
+  })
+
+  test('leaves a short title so its small words stay', () => {
+    assert.equal(slugify('Oliver vs. The Vacuum'), 'oliver-vs-the-vacuum')
+    assert.equal(slugify('The Finest Thing in the Wood'), 'finest-thing-in-the-wood')
+  })
+})

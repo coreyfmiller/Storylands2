@@ -24,6 +24,15 @@ export function slugify(title) {
   // Drop a leading article: "finest-thing-in-the-wood" reads better than "the-".
   if (words.length > 2 && STOP.has(words[0])) words = words.slice(1)
 
+  // Only when the title is too long to fit, drop the small interior words. A
+  // flat truncation threw away the noun and kept the filler: "Pixie and the
+  // Enormous Little Rainbow" became `pixie-and-the-enormous-little`, a route
+  // with the subject missing. Squeezing first keeps the words that carry it.
+  if (words.length > MAX_SEGMENTS) {
+    const squeezed = words.filter((w) => !STOP.has(w))
+    if (squeezed.length >= 2) words = squeezed
+  }
+
   words = words.slice(0, MAX_SEGMENTS)
   while (words.length > 2 && STOP.has(words[words.length - 1])) words.pop()
 

@@ -1,0 +1,38 @@
+{
+  "id": "pixie",
+  "name": "Pixie",
+  "species": "butterfly",
+  "tagline": "Little moments can change everything.",
+  "bio": "Pixie, a cute small butterfly: a soft cream-and-tan furry body with darker brown markings down her abdomen, large rounded wings patterned in lilac-purple, pale blue and cream with soft yellow spots, fine pink-red veining and a thin warm gold edge, two long curling gold antennae each tipped with a tiny point of light, a small round cream face with very large dark eyes ringed in amber, soft eyelashes, rosy cheeks and a tiny smiling mouth, and two small teardrop-shaped tails hanging from her lower wings",
+  "invariants": [
+    "lilac-purple, pale blue and cream wings with soft yellow spots and fine pink-red veining",
+    "a thin warm gold edge running all the way around the wings",
+    "two long curling gold antennae, each tipped with a tiny point of light",
+    "a soft cream and tan furry body with darker brown markings down the abdomen",
+    "very large dark eyes ringed with amber, soft eyelashes and rosy cheeks",
+    "two small teardrop-shaped tails hanging from the lower wings"
+  ],
+  "forbidden": [
+    "a different wing pattern, wing shape or wing colour",
+    "straight, clubbed or feathered antennae",
+    "Pixie wearing clothing, jewellery or accessories",
+    "a realistic or anatomically detailed insect; she is a soft storybook butterfly",
+    "visible insect legs beyond small tucked forelegs",
+    "dull or drab moth colouring"
+  ],
+  "habit": "her antennae curl in and the tips glow a little brighter when she is delighted",
+  "personality": "imaginative, hopeful, kind",
+  "notes": [
+    "The cover art lives at assets/characters/covers/pixie.png and has her name and",
+    "tagline painted into it. The generation reference at assets/characters/pixie.png",
+    "is a separate, TEXTLESS sheet derived from that cover.",
+    "",
+    "This split is new with Pixie. The seven original characters use their cover as",
+    "their reference, so the painted title is in the seed on every page of every",
+    "book, held back only by the prompt insisting on no text. Do it Pixie's way."
+  ],
+  "approved": {
+    "candidate": 1,
+    "at": "2026-10-30T17:14:44.761Z"
+  }
+}

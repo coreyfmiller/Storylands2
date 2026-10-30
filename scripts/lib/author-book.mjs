@@ -47,7 +47,19 @@ ${SHOT_KEYS.map((k) => `- ${k}: ${SHOT_TYPES[k]}`).join('\n')}
 - Use at least ${minimumDistinctShots(13)} different ones across the book.
 - Match the shot to the beat: an establishing or wide shot to open, close shots for the moments that turn on a face, a detail shot when the object matters, twoShot when two characters are really together, high angle when the character feels small, low angle when they feel big. Do not just rotate through the list — choose each one.
 
-HOW THE PAGES ARE CAST. A supporting character must have pages they are ABSENT from, or their arrival cannot land. The friend who asks the puncturing question needs to arrive. Vary how many characters are in frame.
+HOW THE PAGES ARE CAST. This matters more than anything else on this page.
+- The second character you are given is a REAL CHARACTER, not scenery. They have a name, they speak, they have their own view, and what they say changes what the hero does.
+- They must be ABSENT from some pages and then ARRIVE. A friend who is simply always there cannot arrive, and the arrival is the beat the whole story turns on.
+- They must speak out loud, in quotation marks, on at least three pages.
+- Their big moment is a QUESTION, not advice. "When did you last actually see it?" is the model: it makes the hero realise something themselves rather than being told.
+- Write them so they could carry their own book later. Give them one opinion and one habit of speech.
+
+WHAT NOT TO DO, taken from a real audit of the existing library:
+- Do NOT end by explaining the story. Five of the seven existing books end on a sentence like "Rusty had learned something: kindness makes the whole world feel the right size", or "big dreams are just small splashes, one after another". Every one of those is the book stopping to tell the reader what it meant. The two books that do not do this are the two best ones.
+- The last page shows the change through an action or an image, and stops. No "he learned", no "it turned out", no "that is why", no defining what brave or kind means.
+- Do NOT make the companion a silent animal that glows or flutters nearby. Five books did exactly that.
+- Give the book a REVERSAL: something the reader did not see coming, not just the hero quietly realising a truth. The best existing book works because the monster turns out to be useful.
+- Earn at least one real laugh. Specific and physical, not whimsical.
 
 PROSE TEXTURE:
 - Do not start more than three pages with the same word. Starting five pages with the protagonist's name is a tic a reader hears.
@@ -217,6 +229,7 @@ export async function authorBook({
   pages = 13,
   notes,
   maxAttempts = 3,
+  strict = true,
   onAttempt,
 }) {
   if (pages < MIN_PAGES || pages > MAX_PAGES) {
@@ -241,7 +254,7 @@ export async function authorBook({
       maxOutputTokens: 32000,
     })
     const book = normalise(raw, { slug, character })
-    const { errors, warnings } = validateBook({ book, refs, bios })
+    const { errors, warnings } = validateBook({ book, refs, bios, strict })
     last = { book, errors, warnings }
 
     if (errors.length === 0) return { book, attempts: attempt, warnings }

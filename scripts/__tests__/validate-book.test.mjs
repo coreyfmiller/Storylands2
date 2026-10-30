@@ -45,6 +45,28 @@ function book(overrides = {}, pageOverrides = {}) {
 
 const check = (b) => validateBook({ book: b, refs, bios })
 
+/**
+ * Strict mode needs a book that satisfies the series rules, or every assertion
+ * drowns in unrelated errors about cast and dialogue.
+ */
+function seriesReady(overrides = {}) {
+  const b = book(overrides)
+  const shots = ['establishing', 'wide', 'mid', 'close', 'detail', 'low', 'high', 'twoShot']
+  b.pages.forEach((p, i) => {
+    p.manifest.shotType = shots[i % shots.length]
+  })
+  // Tilly arrives on page 4 and speaks, and is absent from the opening.
+  for (const i of [3, 4, 5, 9, 10]) {
+    b.pages[i].manifest.charactersPresent = ['pip', 'tilly']
+  }
+  for (const i of [3, 4, 9]) {
+    b.pages[i].text = `${b.pages[i].text.split('.')[0]}. \u201cWell, now,\u201d said Tilly.`
+  }
+  return b
+}
+
+const strictCheck = (b) => validateBook({ book: b, refs, bios, strict: true })
+
 describe('a well-formed book', () => {
   test('passes with no errors', () => {
     const { errors } = check(book())
@@ -132,11 +154,61 @@ describe('the ending', () => {
     )
   })
 
-  test('rejects prose that states the moral', () => {
+  // The sentences below are the REAL last pages of five shipped books. The
+  // first version of this check caught none of them, which is how five of seven
+  // books came to end by explaining themselves. Each one is a regression test.
+  const SHIPPED_SERMONS = [
+    'But Rusty had learned something: even the biggest feelings get smaller when you are gentle.',
+    'big dreams are just small splashes, one after another, all the way across.',
+    'She had learned something brighter than any lantern.',
+    "Because Pip's flame was small. But his heart was the biggest in the valley.",
+    "Maybe brave didn't mean never being scared. Maybe brave meant looking anyway.",
+    'And the dark, it turned out, was not so bad with a friend in it.',
+    'But now he knew a secret: even the biggest lake is one splash at a time.',
+  ]
+
+  for (const [i, sermon] of SHIPPED_SERMONS.entries()) {
+    test(`strict mode rejects a stated moral (${i + 1})`, () => {
+      const b = book()
+      b.pages[12].text = sermon
+      const { errors } = strictCheck(b)
+      assert.ok(
+        errors.some((e) => e.includes('tells the reader the point')),
+        `missed: "${sermon}"\ngot: ${JSON.stringify(errors)}`,
+      )
+    })
+  }
+
+  test('it is only a warning for the original books, so they still load', () => {
     const b = book()
-    b.pages[12].text = 'And so Pip learned that being kind is what matters most of all in the end.'
-    const { errors } = check(b)
-    assert.ok(errors.some((e) => e.includes('moral')))
+    b.pages[12].text = SHIPPED_SERMONS[0]
+    const { errors, warnings } = check(b)
+    assert.equal(errors.length, 0)
+    assert.ok(warnings.some((w) => w.includes('tells the reader the point')))
+  })
+
+  test('leaves prose that shows the change alone', () => {
+    // Oliver's and Nibs's real endings. Neither explains itself.
+    for (const fine of [
+      'He still barked at the Monster now and then. Just so it knew who was boss.',
+      'Tilly smiled. This time, Nibs was helping it grow.',
+      'Pixie nestled beside Tilly. Together they watched the pond grow wide with circles.',
+    ]) {
+      const b = book()
+      b.pages[12].text = fine
+      const { errors } = strictCheck(b)
+      assert.ok(
+        !errors.some((e) => e.includes('tells the reader the point')),
+        `false positive on: "${fine}"`,
+      )
+    }
+  })
+
+  test('rejects a subtitle that states the point', () => {
+    const { errors } = strictCheck(
+      book({ subtitle: 'A very big morning begins with something very small.' }),
+    )
+    assert.ok(errors.some((e) => e.includes('subtitle')))
   })
 })
 
