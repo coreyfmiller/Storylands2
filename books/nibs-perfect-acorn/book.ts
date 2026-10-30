@@ -10,22 +10,33 @@
 // Voice: warm restrained narrator, sparse Nibs dialogue, Tilly carries most spoken lines,
 // meaning stays underneath. Textless 9:16 art; the text is an overlay in the reader.
 
-import { pageArt, type Book, type BookPage, type IllustrationManifest } from '../types'
+import { pageArt, type Book, type BookPage, type IllustrationManifest } from '../types.ts'
 
 // Re-exported so anything that imported these from this module still resolves.
 export type { Book, BookPage, IllustrationManifest }
 
+/**
+ * Approved reference art, seeded into every page prompt that character appears on.
+ * Paths resolve against assets/ — these are generation masters and are not served.
+ */
 export const CHARACTER_REFS: Record<string, string> = {
-  nibs: 'characters/nibs.png',
-  tilly: 'characters/Tilly.png',
+  nibs:
+    'characters/nibs.png',
+  tilly:
+    'characters/Tilly.png',
 }
 
-const forbiddenAlways = [
-  'any text, words, letters, numbers, or title in the image',
-  'frightening or dark imagery',
-  'human characters',
-  'Nibs wearing clothing',
-]
+/** Short on-model description, written into the prompt alongside the reference. */
+export const CHARACTER_BIOS: Record<string, string> = {
+  nibs:
+    'Nibs, a cute young red squirrel: bright red-orange fur with a cream/white muzzle, chest and belly, a very large bushy red-orange tail, tall tufted ears with lighter insides, big dark expressive eyes, small freckles across the muzzle and two prominent front teeth in an eager grin',
+  tilly:
+    'Tilly, a small brown owl: soft mottled brown and buff feathers with a paler speckled chest, large round amber-gold eyes, tufted ears, a small grey-black hooked beak and a calm, gently knowing expression; she is roughly the same height as Nibs',
+}
+
+// Never allowed in any illustration in this book. The first two are product rules:
+// all words live in the reader's text panel, and a blank sign looks like broken art.
+const forbiddenAlways = ['frightening or dark imagery', 'human characters', 'Nibs wearing clothing']
 
 const rawBook: Book = {
   id: 'nibs-perfect-acorn',
@@ -45,8 +56,12 @@ const rawBook: Book = {
         timeOfDay: 'morning',
         action: 'Nibs sits among several acorns, inspecting one closely and frowning with great seriousness, a small pile of rejected acorns beside him',
         emotionalBeat: 'fussy, particular, self-important',
-        requiredVisualFacts: ['several ordinary acorns on the ground', 'Nibs holding one acorn up to inspect it', 'a small pile of set-aside acorns'],
-        forbiddenVisualFacts: [...forbiddenAlways, 'a sprout or seedling', 'Tilly the owl'],
+        requiredVisualFacts: [
+          'several ordinary acorns on the ground',
+          'Nibs holding one acorn up to inspect it',
+          'a small pile of set-aside acorns',
+        ],
+        forbiddenVisualFacts: [...forbiddenAlways, 'any sign, signpost, board, placard, label, or plaque', 'any text, words, letters, numbers, or title in the image', 'a sprout or seedling', 'Tilly the owl'],
         composition: 'Nibs centered-low, acorns around him, warm morning light',
       },
     },
@@ -60,8 +75,12 @@ const rawBook: Book = {
         timeOfDay: 'morning',
         action: 'Nibs holds up a single flawless acorn in both paws, eyes wide with wonder, a beam of sunlight on it',
         emotionalBeat: 'awe and joy',
-        requiredVisualFacts: ['one single perfect acorn held reverently in both paws', 'a warm shaft of sunlight highlighting the acorn', 'Nibs looking amazed'],
-        forbiddenVisualFacts: [...forbiddenAlways, 'many acorns', 'a sprout or seedling', 'Tilly the owl'],
+        requiredVisualFacts: [
+          'one single perfect acorn held reverently in both paws',
+          'a warm shaft of sunlight highlighting the acorn',
+          'Nibs looking amazed',
+        ],
+        forbiddenVisualFacts: [...forbiddenAlways, 'any sign, signpost, board, placard, label, or plaque', 'any text, words, letters, numbers, or title in the image', 'many acorns', 'a sprout or seedling', 'Tilly the owl'],
         composition: 'close, tender, the acorn is the focal point',
       },
     },
@@ -75,8 +94,12 @@ const rawBook: Book = {
         timeOfDay: 'morning',
         action: 'Nibs clutches the acorn to his chest and glances over his shoulder with sudden worry, as if someone might be watching',
         emotionalBeat: 'joy tipping into worry',
-        requiredVisualFacts: ['Nibs holding the acorn protectively against his chest', 'a wary, worried expression', 'glancing over his shoulder'],
-        forbiddenVisualFacts: [...forbiddenAlways, 'a sprout or seedling', 'Tilly the owl', 'an actual threat or predator'],
+        requiredVisualFacts: [
+          'Nibs holding the acorn protectively against his chest',
+          'a wary, worried expression',
+          'glancing over his shoulder',
+        ],
+        forbiddenVisualFacts: [...forbiddenAlways, 'any sign, signpost, board, placard, label, or plaque', 'any text, words, letters, numbers, or title in the image', 'a sprout or seedling', 'Tilly the owl', 'an actual threat or predator'],
         composition: 'Nibs slightly hunched and protective, clearing quiet behind him',
       },
     },
@@ -90,8 +113,12 @@ const rawBook: Book = {
         timeOfDay: 'midday',
         action: 'Nibs pats fresh earth over a spot beneath a crooked root with his paws, focused and secretive',
         emotionalBeat: 'earnest, industrious, secretive',
-        requiredVisualFacts: ['a distinctive crooked tree root', 'freshly patted earth', 'Nibs working with his paws in the dirt'],
-        forbiddenVisualFacts: [...forbiddenAlways, 'a sprout or seedling', 'Tilly the owl'],
+        requiredVisualFacts: [
+          'a distinctive crooked tree root',
+          'freshly patted earth',
+          'Nibs working with his paws in the dirt',
+        ],
+        forbiddenVisualFacts: [...forbiddenAlways, 'any sign, signpost, board, placard, label, or plaque', 'any text, words, letters, numbers, or title in the image', 'a sprout or seedling', 'Tilly the owl'],
         composition: 'the crooked root prominent (recurring landmark), Nibs low beside it',
       },
     },
@@ -104,9 +131,13 @@ const rawBook: Book = {
         location: 'the clearing, now dotted with several small patches of dug earth',
         timeOfDay: 'afternoon',
         action: 'Nibs stands proudly amid a ridiculous number of little dig-marks, holding a scrappy hand-drawn map, several other marked spots around him',
-        emotionalBeat: 'proud of an absurdly elaborate plan (comedy peak of the escalation)',
-        requiredVisualFacts: ['many small patches of disturbed earth across the clearing', 'Nibs holding a crude little map (with no readable text, just scribbles and arrows)', 'an over-serious, satisfied expression'],
-        forbiddenVisualFacts: ['frightening or dark imagery', 'human characters', 'Nibs wearing clothing', 'readable words or letters on the map', 'a sprout or seedling', 'Tilly the owl'],
+        emotionalBeat: 'proud of an absurdly elaborate plan',
+        requiredVisualFacts: [
+          'many small patches of disturbed earth across the clearing',
+          'Nibs holding a crude little map with only scribbles and arrows, no readable text',
+          'an over-serious, satisfied expression',
+        ],
+        forbiddenVisualFacts: [...forbiddenAlways, 'any sign, signpost, board, placard, label, or plaque', 'readable words or letters on the map', 'a sprout or seedling', 'Tilly the owl'],
         composition: 'wide enough to show the comic sprawl of dig-marks; Nibs central and pleased',
       },
     },
@@ -120,9 +151,13 @@ const rawBook: Book = {
         timeOfDay: 'late afternoon',
         action: 'Tilly the owl perches on a low branch tilting her head with gentle curiosity; Nibs stands below, caught mid-thought, one paw raised, suddenly uncertain',
         emotionalBeat: 'a quiet, puncturing question; dawning uncertainty',
-        requiredVisualFacts: ['Tilly the brown owl perched on a low branch, head tilted, calm and curious', 'Nibs looking up, caught off guard and uncertain', 'the dig-marked clearing visible'],
-        forbiddenVisualFacts: [...forbiddenAlways, 'a sprout or seedling'],
-        composition: 'two-character: Tilly upper-right on branch, Nibs lower-left; both clearly on-model; similar small scale',
+        requiredVisualFacts: [
+          'Tilly the brown owl perched on a low branch, head tilted, calm and curious',
+          'Nibs looking up, caught off guard and uncertain',
+          'the dig-marked clearing visible',
+        ],
+        forbiddenVisualFacts: [...forbiddenAlways, 'any sign, signpost, board, placard, label, or plaque', 'any text, words, letters, numbers, or title in the image', 'a sprout or seedling'],
+        composition: 'two-character: Tilly upper-right on branch, Nibs lower-left; both on-model; similar small scale',
       },
     },
     {
@@ -134,9 +169,13 @@ const rawBook: Book = {
         location: 'the base of the crooked root',
         timeOfDay: 'late afternoon',
         action: 'Nibs stares in horror into an empty hole beneath the crooked root; Tilly leans in beside him looking thoughtful',
-        emotionalBeat: 'alarm and disbelief (the mystery turn)',
-        requiredVisualFacts: ['an empty hole in the earth beneath the crooked root', 'Nibs looking shocked and dismayed', 'Tilly observing calmly nearby'],
-        forbiddenVisualFacts: [...forbiddenAlways, 'a sprout or seedling', 'the acorn visible'],
+        emotionalBeat: 'alarm and disbelief',
+        requiredVisualFacts: [
+          'an empty hole in the earth beneath the crooked root',
+          'Nibs looking shocked and dismayed',
+          'Tilly observing calmly nearby',
+        ],
+        forbiddenVisualFacts: [...forbiddenAlways, 'any sign, signpost, board, placard, label, or plaque', 'any text, words, letters, numbers, or title in the image', 'a sprout or seedling', 'the acorn visible'],
         composition: 'both characters focused on the empty hole; the crooked root frames it',
       },
     },
@@ -150,8 +189,12 @@ const rawBook: Book = {
         timeOfDay: 'evening approaching',
         action: 'Nibs crouches like a detective following a line of paw prints that loop back toward himself; Tilly walks behind, glancing between the prints and Nibs',
         emotionalBeat: 'determined but comically wrong; Tilly quietly noticing the truth',
-        requiredVisualFacts: ['a line of small squirrel paw prints in the dirt', 'Nibs following the prints with intense focus', 'Tilly noticing that the prints lead back to Nibs'],
-        forbiddenVisualFacts: [...forbiddenAlways, 'a sprout or seedling'],
+        requiredVisualFacts: [
+          'a line of small squirrel paw prints in the dirt',
+          'Nibs following the prints with intense focus',
+          'Tilly noticing that the prints lead back to Nibs',
+        ],
+        forbiddenVisualFacts: [...forbiddenAlways, 'any sign, signpost, board, placard, label, or plaque', 'any text, words, letters, numbers, or title in the image', 'a sprout or seedling'],
         composition: 'the looping prints visible on the ground; two characters mid-investigation',
       },
     },
@@ -165,8 +208,12 @@ const rawBook: Book = {
         timeOfDay: 'dusk',
         action: 'Nibs sits slumped and defeated among the dig-marks; Tilly sits close beside him, offering a gentle idea rather than a lecture',
         emotionalBeat: 'low point: quiet defeat, then a gentle reframe',
-        requiredVisualFacts: ['Nibs sitting down, deflated, surrounded by his own dig-marks', 'Tilly sitting companionably beside him', 'soft dusk light'],
-        forbiddenVisualFacts: [...forbiddenAlways, 'a sprout or seedling'],
+        requiredVisualFacts: [
+          'Nibs sitting down, deflated, surrounded by his own dig-marks',
+          'Tilly sitting companionably beside him',
+          'soft dusk light',
+        ],
+        forbiddenVisualFacts: [...forbiddenAlways, 'any sign, signpost, board, placard, label, or plaque', 'any text, words, letters, numbers, or title in the image', 'a sprout or seedling'],
         composition: 'intimate two-shot, warm low light, small figures in a big quiet clearing',
       },
     },
@@ -180,8 +227,12 @@ const rawBook: Book = {
         timeOfDay: 'dusk',
         action: 'Nibs digs at one specific spot and uncovers the perfect acorn at last, a look of relief and recognition on his face',
         emotionalBeat: 'realization and relief; he solved it himself',
-        requiredVisualFacts: ['Nibs uncovering the acorn from the earth', 'the acorn visible in the freshly opened hole', 'a look of dawning realization on Nibs'],
-        forbiddenVisualFacts: [...forbiddenAlways, 'Tilly the owl', 'the acorn sprouting yet'],
+        requiredVisualFacts: [
+          'Nibs uncovering the acorn from the earth',
+          'the acorn visible in the freshly opened hole',
+          'a look of dawning realization on Nibs',
+        ],
+        forbiddenVisualFacts: [...forbiddenAlways, 'any sign, signpost, board, placard, label, or plaque', 'any text, words, letters, numbers, or title in the image', 'Tilly the owl', 'the acorn sprouting yet'],
         composition: 'Nibs and the just-uncovered acorn as the focal point, dusk glow',
       },
     },
@@ -195,9 +246,13 @@ const rawBook: Book = {
         timeOfDay: 'dusk',
         action: 'Nibs holds the sprouting acorn: a tiny pale root and first green shoot have split the shell; he pauses, paw hovering, uncertain',
         emotionalBeat: 'dismay turning to something quieter and more thoughtful',
-        requiredVisualFacts: ['the acorn with a small pale root and a tiny green sprout emerging from a cracked shell', 'Nibs looking at it closely, paw hovering, hesitating', 'a tender, thoughtful expression'],
-        forbiddenVisualFacts: [...forbiddenAlways, 'Tilly the owl', 'a fully grown tree'],
-        composition: 'very close on Nibs and the sprouting acorn; the quiet emotional center of the book',
+        requiredVisualFacts: [
+          'the acorn with a small pale root and a tiny green sprout emerging from a cracked shell',
+          'Nibs looking at it closely, paw hovering, hesitating',
+          'a tender, thoughtful expression',
+        ],
+        forbiddenVisualFacts: [...forbiddenAlways, 'any sign, signpost, board, placard, label, or plaque', 'any text, words, letters, numbers, or title in the image', 'Tilly the owl', 'a fully grown tree'],
+        composition: 'very close on Nibs and the sprouting acorn; the quiet emotional center',
       },
     },
     {
@@ -210,8 +265,12 @@ const rawBook: Book = {
         timeOfDay: 'dusk turning to evening',
         action: 'Nibs gently pats soft earth back around the tiny sprouted acorn with both paws, looking at it with a soft, accepting expression rather than dismay',
         emotionalBeat: 'the quiet turn: letting go of "perfect" and choosing to let it grow',
-        requiredVisualFacts: ['the little sprouted acorn set in the earth with its tiny green shoot', 'Nibs patting the soil around it with both paws', 'a gentle, accepting expression on Nibs'],
-        forbiddenVisualFacts: [...forbiddenAlways, 'Tilly the owl', 'a fully grown tree', 'a fence or barrier yet'],
+        requiredVisualFacts: [
+          'the little sprouted acorn set in the earth with its tiny green shoot',
+          'Nibs patting the soil around it with both paws',
+          'a gentle, accepting expression on Nibs',
+        ],
+        forbiddenVisualFacts: [...forbiddenAlways, 'any sign, signpost, board, placard, label, or plaque', 'any text, words, letters, numbers, or title in the image', 'Tilly the owl', 'a fully grown tree', 'a fence or barrier yet'],
         composition: 'close and tender, warm low evening light; Nibs and the sprout share the frame',
       },
     },
@@ -225,8 +284,13 @@ const rawBook: Book = {
         timeOfDay: 'bright, hopeful morning',
         action: 'Nibs stands guard proudly beside a tiny sprout he has ringed with an absurdly elaborate little twig fence (with a tiny gate, and a second smaller fence inside the first); Tilly watches from a branch with a warm, happy expression, the two clearly friends',
         emotionalBeat: 'affectionate comic callback: he is still lovably himself, but this time he is proudly caring for it, not hiding it',
-        requiredVisualFacts: ['a tiny green sprout in a patch of earth', 'an absurdly elaborate little twig fence ringing the sprout (a tiny gate, and a second smaller fence inside the first)', 'Nibs standing guard proudly', 'Tilly watching with a knowing, amused expression'],
-        forbiddenVisualFacts: ['frightening or dark imagery', 'human characters', 'Nibs wearing clothing', 'readable words or letters anywhere in the image', 'any sign, signpost, board, placard, or plaque', 'a fully grown tree'],
+        requiredVisualFacts: [
+          'a tiny green sprout in a patch of earth',
+          'an absurdly elaborate little twig fence ringing the sprout (a tiny gate, and a second smaller fence inside the first)',
+          'Nibs standing guard proudly',
+          'Tilly watching with a knowing, amused expression',
+        ],
+        forbiddenVisualFacts: [...forbiddenAlways, 'readable words or letters anywhere in the image', 'any sign, signpost, board, placard, or plaque', 'a fully grown tree'],
         composition: 'morning light, comic reversal; Nibs proudly guarding the over-fenced sprout, Tilly observing from a branch',
       },
     },
@@ -240,15 +304,21 @@ const rawBook: Book = {
         timeOfDay: 'warm golden morning',
         action: 'Nibs and Tilly sit together beside the little seedling, looking at it fondly as it reaches upward; the mood is peaceful, warm, and hopeful, the two clearly close friends',
         emotionalBeat: 'the warm, complete, happy ending: growth, friendship, and a bright future',
-        requiredVisualFacts: ['a small healthy green seedling a few inches tall growing from the earth', 'Nibs and Tilly together beside it looking at it fondly', 'warm hopeful golden light', 'a sense of calm and friendship'],
-        forbiddenVisualFacts: ['frightening or dark imagery', 'human characters', 'Nibs wearing clothing', 'readable words or letters anywhere in the image', 'any sign, signpost, board, placard, or plaque', 'a fully grown tree'],
+        requiredVisualFacts: [
+          'a small healthy green seedling a few inches tall growing from the earth',
+          'Nibs and Tilly together beside it looking at it fondly',
+          'warm hopeful golden light',
+          'a sense of calm and friendship',
+        ],
+        forbiddenVisualFacts: [...forbiddenAlways, 'readable words or letters anywhere in the image', 'any sign, signpost, board, placard, or plaque', 'a fully grown tree'],
         composition: 'gentle, open, warm final image; the two friends and the growing seedling share the frame, sky and light suggesting a hopeful future',
       },
     },
   ],
 }
 
-// Fill each page's art path from its page number (matches scripts/generate-book.mjs output).
+// `art` is derived, never written by hand: pageArt owns the directory, the zero
+// padding and the file extension, so changing the image format is one edit.
 export const book: Book = {
   ...rawBook,
   pages: rawBook.pages.map((p) => ({

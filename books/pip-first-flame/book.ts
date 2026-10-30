@@ -15,15 +15,28 @@
 // Voice: warm, lyrical narrator; Pip's feelings are earnest and tender; gentle festival magic.
 // Theme shown never stated. Textless 9:16 art; words live only in the reader's text panel.
 
-import { pageArt, type Book, type BookPage, type IllustrationManifest } from '../types'
+import { pageArt, type Book, type BookPage, type IllustrationManifest } from '../types.ts'
 
 // Re-exported so anything that imported these from this module still resolves.
 export type { Book, BookPage, IllustrationManifest }
 
+/**
+ * Approved reference art, seeded into every page prompt that character appears on.
+ * Paths resolve against assets/ — these are generation masters and are not served.
+ */
 export const CHARACTER_REFS: Record<string, string> = {
-  pip: 'characters/pip.png',
+  pip:
+    'characters/pip.png',
 }
 
+/** Short on-model description, written into the prompt alongside the reference. */
+export const CHARACTER_BIOS: Record<string, string> = {
+  pip:
+    'Pip, a small cute baby dragon: warm red scaled body with a soft cream / pale-gold belly and chest, a row of small dark-red curved horns and spines down his head and back, big expressive amber-brown eyes, small orange bat-like wings with a lighter membrane, four little clawed feet and a long ridged tail; a gentle, friendly, kind face',
+}
+
+// Never allowed in any illustration in this book. The first two are product rules:
+// all words live in the reader's text panel, and a blank sign looks like broken art.
 const forbiddenAlways = [
   'any text, words, letters, numbers, or title in the image',
   'any sign, signpost, board, placard, label, or plaque',
@@ -50,7 +63,11 @@ const rawBook: Book = {
         timeOfDay: 'early evening, soft golden dusk',
         action: 'Pip the small red dragon sits on a rock looking up at rows of paper lanterns waiting to be lit, hopeful and a little wistful',
         emotionalBeat: 'gentle longing; the night is special and Pip wants to belong to it',
-        requiredVisualFacts: ['Pip the small red dragon with cream belly, small horns, and little orange wings', 'strings of unlit paper lanterns above a cozy valley village', 'warm dusk light'],
+        requiredVisualFacts: [
+          'Pip the small red dragon with cream belly, small horns, and little orange wings',
+          'strings of unlit paper lanterns above a cozy valley village',
+          'warm dusk light',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways, 'visible fire or flames yet', 'other dragons crowding the frame'],
         composition: 'Pip lower-center looking up, lanterns arcing overhead, valley behind; warm and inviting',
       },
@@ -65,7 +82,11 @@ const rawBook: Book = {
         timeOfDay: 'dusk',
         action: 'Pip puffs his cheeks and breathes out hard, producing only a small wisp of grey smoke, looking cross-eyed at it',
         emotionalBeat: 'earnest effort, comic disappointment',
-        requiredVisualFacts: ['Pip breathing out a small curl of grey smoke (no fire)', 'puffed cheeks and a determined face', 'the cozy village behind'],
+        requiredVisualFacts: [
+          'Pip breathing out a small curl of grey smoke (no fire)',
+          'puffed cheeks and a determined face',
+          'the cozy village behind',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways, 'actual flames or fire', 'scary imagery'],
         composition: 'close on Pip and the little wisp of smoke; warm dusk',
       },
@@ -80,7 +101,11 @@ const rawBook: Book = {
         timeOfDay: 'dusk',
         action: 'Pip stands on tiptoe with eyes squeezed shut and cheeks puffed, straining comically to breathe fire, a small puff of smoke escaping',
         emotionalBeat: 'trying too hard; forcing it',
-        requiredVisualFacts: ['Pip straining with eyes shut and puffed cheeks', 'only a puff of smoke', 'a comic, effortful pose'],
+        requiredVisualFacts: [
+          'Pip straining with eyes shut and puffed cheeks',
+          'only a puff of smoke',
+          'a comic, effortful pose',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways, 'actual flames or fire'],
         composition: 'full-body Pip mid-strain, generous space around him, warm light',
       },
@@ -95,7 +120,11 @@ const rawBook: Book = {
         timeOfDay: 'evening, growing dark',
         action: 'Pip stands beside his own small unlit paper lantern, watching many warm glowing lanterns light up across the valley beyond him',
         emotionalBeat: 'left out; the quiet ache of being the only one',
-        requiredVisualFacts: ['Pip beside a single dark, unlit lantern', 'many warm glowing lanterns in the distance', 'Pips wistful expression'],
+        requiredVisualFacts: [
+          'Pip beside a single dark, unlit lantern',
+          'many warm glowing lanterns in the distance',
+          'Pips wistful expression',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways, 'other dragons shown in clear detail (keep them distant/implied)', 'scary imagery'],
         composition: 'Pip and his dark lantern in the foreground, distant glow behind; gentle contrast',
       },
@@ -108,9 +137,13 @@ const rawBook: Book = {
         charactersPresent: ['pip'],
         location: 'the shadowy edge of the valley, tall grass, away from the festival glow',
         timeOfDay: 'night',
-        action: 'Pip walks alone into soft blue-dark grass at the valleys edge, ears/horns drooping, then pauses, hearing a tiny sound',
+        action: 'Pip walks alone into soft blue-dark grass at the valleys edge, horns drooping, then pauses, hearing a tiny sound',
         emotionalBeat: 'lonely, then a flicker of curiosity',
-        requiredVisualFacts: ['Pip alone in cool blue-toned tall grass at night', 'the festival glow small and far behind him', 'a curious, listening pause'],
+        requiredVisualFacts: [
+          'Pip alone in cool blue-toned tall grass at night',
+          'the festival glow small and far behind him',
+          'a curious, listening pause',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways, 'scary or threatening imagery', 'the glow-moth clearly visible yet'],
         composition: 'small Pip in a large soft-dark space, distant warm glow behind; calm not scary',
       },
@@ -125,7 +158,11 @@ const rawBook: Book = {
         timeOfDay: 'night',
         action: 'Pip crouches gently over a tiny pale glow-moth sitting in the grass with its glow gone dark, its wings drawn in, shivering',
         emotionalBeat: 'tender concern for something smaller than himself',
-        requiredVisualFacts: ['a tiny pale glow-moth with its light gone out, sitting small in the grass', 'Pip leaning down gently and softly', 'a caring, worried expression on Pip'],
+        requiredVisualFacts: [
+          'a tiny pale glow-moth with its light gone out, sitting small in the grass',
+          'Pip leaning down gently and softly',
+          'a caring, worried expression on Pip',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways, 'the moth glowing brightly yet', 'scary imagery'],
         composition: 'close, tender two-shot of Pip and the small dark moth; soft night',
       },
@@ -140,7 +177,11 @@ const rawBook: Book = {
         timeOfDay: 'night',
         action: 'Pip curls his body and wings gently around the tiny moth cupped in his paws, sheltering it from the wind, speaking softly to it',
         emotionalBeat: 'pure kindness; caring with his whole heart',
-        requiredVisualFacts: ['Pip curled protectively around the tiny moth cupped in his paws', 'his little wings sheltering it', 'a gentle, loving expression'],
+        requiredVisualFacts: [
+          'Pip curled protectively around the tiny moth cupped in his paws',
+          'his little wings sheltering it',
+          'a gentle, loving expression',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways, 'flames', 'scary imagery'],
         composition: 'intimate, warm-cool blend; Pip wrapped around the tiny moth, centered with headroom',
       },
@@ -155,7 +196,11 @@ const rawBook: Book = {
         timeOfDay: 'night',
         action: 'A soft warm glow begins to shine from within Pips chest and cupped paws, lighting his face gently as he cradles the moth; he looks surprised and moved',
         emotionalBeat: 'wonder; warmth arriving quietly from the inside',
-        requiredVisualFacts: ['a soft warm glow coming from within Pips chest and paws', 'the gentle light on Pips surprised, tender face', 'the moth cradled safely'],
+        requiredVisualFacts: [
+          'a soft warm glow coming from within Pips chest and paws',
+          'the gentle light on Pips surprised, tender face',
+          'the moth cradled safely',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways, 'a big or scary blaze of fire', 'burning or danger'],
         composition: 'the inner glow is the light source; Pip centered, soft warm halo, generous margin',
       },
@@ -170,7 +215,11 @@ const rawBook: Book = {
         timeOfDay: 'night',
         action: 'Pip breathes out gently and a small bright warm flame appears softly at the tip of his snout, lighting up his amazed happy face',
         emotionalBeat: 'joyful astonishment; his first flame, born of warmth',
-        requiredVisualFacts: ['a small, gentle, bright flame at the tip of Pips nose', 'Pips amazed and delighted face lit by it', 'the little moth nearby, warmed'],
+        requiredVisualFacts: [
+          'a small, gentle, bright flame at the tip of Pips nose',
+          'Pips amazed and delighted face lit by it',
+          'the little moth nearby, warmed',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways, 'a large or frightening fire', 'anything burning or dangerous'],
         composition: 'the small flame as the warm focal point; Pip centered with headroom, soft night around',
       },
@@ -185,7 +234,11 @@ const rawBook: Book = {
         timeOfDay: 'night',
         action: 'The little moth glows golden again and lifts up into the air, glowing happily, while Pip watches with delight, his small flame still warm',
         emotionalBeat: 'relief and shared joy; the kindness returned as light',
-        requiredVisualFacts: ['the glow-moth now glowing warm gold and flying up happily', 'Pip watching with a joyful face', 'gentle warm light in the dark'],
+        requiredVisualFacts: [
+          'the glow-moth now glowing warm gold and flying up happily',
+          'Pip watching with a joyful face',
+          'gentle warm light in the dark',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways, 'scary imagery', 'large fire'],
         composition: 'the rising glowing moth draws the eye upward; Pip below watching, warm and happy',
       },
@@ -200,7 +253,11 @@ const rawBook: Book = {
         timeOfDay: 'night',
         action: 'Pip leans toward his own paper lantern and lights it softly with his small nose-flame; the lantern glows warmly to life',
         emotionalBeat: 'quiet pride; doing it his own gentle way',
-        requiredVisualFacts: ['Pip gently lighting his own paper lantern with a small flame', 'the lantern glowing warmly to life', 'Pips calm, proud, happy face'],
+        requiredVisualFacts: [
+          'Pip gently lighting his own paper lantern with a small flame',
+          'the lantern glowing warmly to life',
+          'Pips calm, proud, happy face',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways, 'a big blaze', 'scary imagery'],
         composition: 'warm pool of new lantern light on Pip; centered, cozy, headroom above',
       },
@@ -215,7 +272,11 @@ const rawBook: Book = {
         timeOfDay: 'night',
         action: 'Pip sits proudly and happily beside his own softly glowing lantern, the little glow-moth hovering near him, the valley full of warm lantern light',
         emotionalBeat: 'warm, complete belonging; small but truly his',
-        requiredVisualFacts: ['Pip beside his own warmly glowing lantern', 'the friendly glow-moth glowing near him', 'many warm lanterns across the happy valley'],
+        requiredVisualFacts: [
+          'Pip beside his own warmly glowing lantern',
+          'the friendly glow-moth glowing near him',
+          'many warm lanterns across the happy valley',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways, 'scary imagery', 'a giant fire'],
         composition: 'warm, full, festive glow; Pip and his lantern centered, the valley bright behind',
       },
@@ -230,7 +291,11 @@ const rawBook: Book = {
         timeOfDay: 'night, festive and bright',
         action: 'Pip sits happily among the warm festival glow with the little golden glow-moth resting on his nose, both content, the valley full of lantern light behind',
         emotionalBeat: 'the warm, complete, happy ending: friendship, belonging, a bright future',
-        requiredVisualFacts: ['Pip happy and content with the golden glow-moth resting on or near his nose', 'a valley full of warm glowing lanterns', 'a bright, joyful, peaceful mood'],
+        requiredVisualFacts: [
+          'Pip happy and content with the golden glow-moth resting on or near his nose',
+          'a valley full of warm glowing lanterns',
+          'a bright, joyful, peaceful mood',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways, 'scary imagery', 'a giant fire'],
         composition: 'warm celebratory final image; Pip and the glow-moth centered, festival glow all around, headroom',
       },
@@ -238,6 +303,8 @@ const rawBook: Book = {
   ],
 }
 
+// `art` is derived, never written by hand: pageArt owns the directory, the zero
+// padding and the file extension, so changing the image format is one edit.
 export const book: Book = {
   ...rawBook,
   pages: rawBook.pages.map((p) => ({

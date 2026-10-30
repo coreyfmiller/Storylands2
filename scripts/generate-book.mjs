@@ -1,141 +1,187 @@
 // Generate one illustration per page for a Storylands book.
-// Prompt is DERIVED from each page's manifest. Seeds every call with the present
-// characters' reference PNGs (this is the consistency strategy). Resumable: skips pages
-// whose art already exists unless --force. Per-page failures are isolated.
 //
-// Run: node scripts/generate-book.mjs                         (Story Zero, missing pages)
-//      node scripts/generate-book.mjs --book oliver-vacuum    (a specific book)
-//      node scripts/generate-book.mjs --book oliver-vacuum --force
-//      node scripts/generate-book.mjs --book oliver-vacuum --only 6,7
+// The prompt is DERIVED from each page's manifest in books/<slug>/book.ts, which
+// is the single source for both the app and this script. Every call is seeded
+// with the approved reference art for each character present — that is the whole
+// character-consistency strategy, and the reason pages are generated one cast at
+// a time rather than from a style prompt alone.
 //
-// Reads books/<book-id>/pages.mjs (must export `pages` and `CHARACTER_REFS`; may export
-// `CHARACTER_BIOS`) and writes public/books/<book-id>/pages/page-NN.png.
+// Run:
+//   node scripts/generate-book.mjs --book pip-first-flame
+//   node scripts/generate-book.mjs --book pip-first-flame --dry-run
+//   node scripts/generate-book.mjs --book pip-first-flame --only 6,7 --force
+//   node scripts/generate-book.mjs --all
+//
+// Flags:
+//   --book <slug>     which book (required unless --all)
+//   --all             every book on disk, missing pages only
+//   --only 6,7        just these page numbers
+//   --force           regenerate pages that already exist
+//   --dry-run         print the compiled prompts and spend nothing
+//   --concurrency N   pages in flight at once (default 2)
+//
+// Resumable and per-page isolated: a failure on page 7 never stops page 8, and a
+// re-run fills the gaps. Output is public/books/<slug>/pages/page-NN.png, which
+// must then be converted by scripts/optimize-books.mjs before the app serves it.
 
-import { readFile, writeFile, mkdir, access } from 'node:fs/promises'
+import { writeFile, mkdir, access } from 'node:fs/promises'
 import path from 'node:path'
-import { pathToFileURL, fileURLToPath } from 'node:url'
 import { generateFromReferences, DEFAULT_IMAGE_MODEL } from './lib/openai-image.mjs'
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const ROOT = path.resolve(__dirname, '..')
-const PUBLIC = path.join(ROOT, 'public')
-
-// Character reference art lives in assets/, NOT public/. These are 2.2 MB PNG masters used
-// only to seed the image model; served to a browser they were fifteen megabytes to paint the
-// home grid. public/characters now holds the WebP the app actually displays.
-const REFS = path.join(ROOT, 'assets')
+import { loadBook, bookSlugs, manifestsOf, ASSETS_DIR, PUBLIC_DIR } from './lib/book-source.mjs'
+import { compilePrompt } from './lib/compile-prompt.mjs'
+import { validateBook } from './lib/validate-book.mjs'
+import { loadEnv } from './lib/load-env.mjs'
 
 const args = process.argv.slice(2)
-const FORCE = args.includes('--force')
-const onlyIdx = args.indexOf('--only')
-const ONLY = onlyIdx >= 0 ? new Set((args[onlyIdx + 1] || '').split(',').map((n) => parseInt(n, 10))) : null
-
-// --book <id> selects which book to generate. Defaults to Story Zero for backward compat.
-const bookIdx = args.indexOf('--book')
-const BOOK_ID = bookIdx >= 0 ? args[bookIdx + 1] : 'nibs-perfect-acorn'
-
-const OUT = path.join(PUBLIC, 'books', BOOK_ID, 'pages')
-const manifestPath = path.join(ROOT, 'books', BOOK_ID, 'pages.mjs')
-const manifestModule = await import(pathToFileURL(manifestPath).href)
-const { pages, CHARACTER_REFS } = manifestModule
-
-async function loadEnv() {
-  try {
-    const raw = await readFile(path.join(ROOT, '.env.local'), 'utf8')
-    for (const line of raw.split(/\r?\n/)) {
-      const m = line.match(/^([A-Z0-9_]+)=(.*)$/)
-      if (m && !process.env[m[1]]) process.env[m[1]] = m[2]
-    }
-  } catch {}
+const flag = (name) => args.includes(`--${name}`)
+const value = (name) => {
+  const i = args.indexOf(`--${name}`)
+  return i >= 0 ? args[i + 1] : undefined
 }
 
-// Shared style so every page reads like the same book. Style is carried mostly by the
-// reference images; this reinforces it and enforces the textless / 9:16 rules.
-const STYLE = [
-  'Warm, hand-crafted storybook illustration for a childrens picture book (ages 4-7).',
-  'Rich but gentle color, soft natural light, expressive and characterful.',
-  'Full-bleed vertical 9:16 composition.',
-  // The reader shows page art full-bleed with object-cover, which CROPS the edges to fill.
-  'CRITICAL FRAMING: the image will be displayed cropped to fill, so keep the main subject and ALL important detail (heads, ears, faces, paws, the key action) well within a centered safe area with generous margin and headroom on every side. Never place anything important near the top, bottom, or side edges. Leave comfortable empty space / background around the subject so nothing important is lost if the edges are cropped. Do not fill the frame edge-to-edge with the subject.',
-  'IMPORTANT: absolutely NO text, letters, words, numbers, titles, or signage lettering anywhere in the image.',
-  'Keep every character EXACTLY on-model with its provided reference image: same species, same fur/feather color and pattern, same eyes, same proportions, same apparent age.',
-].join(' ')
-
-// Optional per-book character descriptions (id -> short on-model line). Books may export
-// CHARACTER_BIOS from pages.mjs; if absent we fall back to a generic instruction.
-const BIOS = manifestModule.CHARACTER_BIOS || {}
-
-function compilePrompt(m) {
-  const ordinals = ['FIRST', 'SECOND', 'THIRD', 'FOURTH']
-  const who =
-    m.charactersPresent.length > 1
-      ? m.charactersPresent
-          .map((c, i) => {
-            const bio = BIOS[c] || `${c}, exactly as in the reference image`
-            return `The ${ordinals[i] || 'next'} reference image is ${bio}.`
-          })
-          .join(' ') + ' Draw EACH character exactly on-model with its own reference image.'
-      : `The reference image is ${BIOS[m.charactersPresent[0]] || m.charactersPresent[0] + ', exactly as in the reference'}. Draw it exactly on-model with the reference.`
-  return [
-    STYLE,
-    who,
-    `Scene: ${m.action}.`,
-    `Setting: ${m.location}, ${m.timeOfDay}.`,
-    `Mood: ${m.emotionalBeat}.`,
-    `Must include: ${m.requiredVisualFacts.join('; ')}.`,
-    `Must NOT include: ${m.forbiddenVisualFacts.join('; ')}.`,
-    `Composition: ${m.composition}.`,
-  ].join(' ')
-}
+const FORCE = flag('force')
+const DRY = flag('dry-run')
+const ALL = flag('all')
+const CONCURRENCY = Math.max(1, Number(value('concurrency') ?? 2))
+const ONLY = value('only')
+  ? new Set(
+      String(value('only'))
+        .split(',')
+        .map((n) => parseInt(n, 10))
+        .filter(Number.isInteger),
+    )
+  : null
 
 async function exists(p) {
-  try { await access(p); return true } catch { return false }
+  try {
+    await access(p)
+    return true
+  } catch {
+    return false
+  }
 }
 
-async function main() {
-  await loadEnv()
-  await mkdir(OUT, { recursive: true })
-  console.log(`Model: ${DEFAULT_IMAGE_MODEL}`)
-
+/** Run tasks with a small fixed concurrency, preserving per-task isolation. */
+async function pool(items, limit, worker) {
   const results = []
-  for (const m of pages) {
-    if (ONLY && !ONLY.has(m.page)) continue
-    const name = `page-${String(m.page).padStart(2, '0')}.png`
-    const outPath = path.join(OUT, name)
-    // A page is already done if either the PNG render OR the WebP the app serves is on disk.
-    // optimize-books.mjs --prune deletes the PNG once it has converted it, so checking only
-    // the PNG would re-generate — and re-bill — every page of an already-finished book.
-    const webpPath = outPath.replace(/\.png$/, '.webp')
-    if (!FORCE && ((await exists(outPath)) || (await exists(webpPath)))) {
-      console.log(`page ${m.page}: exists, skip`)
-      results.push({ page: m.page, status: 'skip' })
-      continue
+  let next = 0
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (true) {
+      const i = next++
+      if (i >= items.length) return
+      results[i] = await worker(items[i], i)
     }
-    const refs = m.charactersPresent.map((c) => path.join(REFS, CHARACTER_REFS[c]))
-    const prompt = compilePrompt(m)
-    process.stdout.write(`page ${m.page}: generating (${m.charactersPresent.join('+')}) ... `)
-    try {
-      const { b64 } = await generateFromReferences({ prompt, referencePaths: refs, size: '1024x1536' })
-      await writeFile(outPath, Buffer.from(b64, 'base64'))
-      console.log('OK')
-      results.push({ page: m.page, status: 'ok' })
-    } catch (e) {
-      console.log('FAILED')
-      console.error('  ' + String(e.message || e))
-      results.push({ page: m.page, status: 'fail', error: String(e.message || e) })
-    }
+  })
+  await Promise.all(runners)
+  return results
+}
+
+async function generateOne({ slug, manifest, bios, refs, outDir }) {
+  const name = `page-${String(manifest.page).padStart(2, '0')}.png`
+  const pngPath = path.join(outDir, name)
+  // A page is done if either the render OR the WebP the app serves is present.
+  // optimize-books.mjs --prune removes the PNG once converted, so checking only
+  // the PNG would re-generate, and re-bill, every page of a finished book.
+  const webpPath = pngPath.replace(/\.png$/, '.webp')
+  if (!FORCE && ((await exists(pngPath)) || (await exists(webpPath)))) {
+    return { page: manifest.page, status: 'skip' }
   }
+
+  const prompt = compilePrompt(manifest, bios)
+  if (DRY) {
+    console.log(`\n--- ${slug} page ${manifest.page} (${manifest.charactersPresent.join('+')}) ---`)
+    console.log(prompt)
+    return { page: manifest.page, status: 'dry' }
+  }
+
+  // Reference order must match charactersPresent, because compile-prompt names
+  // them by position ("the FIRST reference image is ...").
+  const referencePaths = manifest.charactersPresent.map((c) => path.join(ASSETS_DIR, refs[c]))
+
+  try {
+    const { b64 } = await generateFromReferences({ prompt, referencePaths, size: '1024x1536' })
+    await writeFile(pngPath, Buffer.from(b64, 'base64'))
+    console.log(`  page ${manifest.page}: OK`)
+    return { page: manifest.page, status: 'ok' }
+  } catch (e) {
+    const message = String(e?.message ?? e)
+    console.log(`  page ${manifest.page}: FAILED`)
+    console.error(`    ${message.slice(0, 300)}`)
+    // Moderation false-positives are common and the fix is editorial, not a
+    // retry, so say so rather than letting it look like a network blip.
+    if (/moderation|safety|rejected/i.test(message)) {
+      console.error(
+        `    This reads as a moderation refusal. Soften the wording in books/${slug}/book.ts ` +
+          `page ${manifest.page} (avoid "monster", "attack", "scary") and re-run with --only ${manifest.page}.`,
+      )
+    }
+    return { page: manifest.page, status: 'fail', error: message }
+  }
+}
+
+async function runBook(slug) {
+  const { book, refs, bios } = await loadBook(slug)
+
+  // Validate before spending anything. A book with a missing CHARACTER_REFS entry
+  // would fail on every page, one paid call at a time.
+  const { errors, warnings } = validateBook({ book, refs, bios })
+  if (errors.length) {
+    console.error(`\n${slug}: will not generate, ${errors.length} validation error(s):`)
+    for (const e of errors) console.error(`   ${e}`)
+    return { slug, ok: 0, skip: 0, fail: book.pages.length, blocked: true }
+  }
+  for (const w of warnings) console.log(`  warn: ${w}`)
+
+  const outDir = path.join(PUBLIC_DIR, 'books', slug, 'pages')
+  await mkdir(outDir, { recursive: true })
+
+  const manifests = manifestsOf(book).filter((m) => !ONLY || ONLY.has(m.page))
+  if (manifests.length === 0) {
+    console.log(`${slug}: no pages selected`)
+    return { slug, ok: 0, skip: 0, fail: 0 }
+  }
+
+  console.log(`\n${slug}: ${book.title} — ${manifests.length} page(s)`)
+  const results = await pool(manifests, DRY ? 1 : CONCURRENCY, (manifest) =>
+    generateOne({ slug, manifest, bios, refs, outDir }),
+  )
 
   const ok = results.filter((r) => r.status === 'ok').length
   const skip = results.filter((r) => r.status === 'skip').length
   const fail = results.filter((r) => r.status === 'fail')
-  console.log(`\nGenerated ${ok}, skipped ${skip}, failed ${fail.length}.`)
-  if (fail.length) console.log('Failed pages: ' + fail.map((f) => f.page).join(', '))
-  if (ok > 0) {
-    // The reader loads .webp. A fresh PNG render is ~2.3 MB and will not be served until
-    // it has been converted, so this is the required next step, not an optimisation.
+  console.log(`${slug}: generated ${ok}, skipped ${skip}, failed ${fail.length}`)
+  if (fail.length) {
+    console.log(`  retry with: --book ${slug} --only ${fail.map((f) => f.page).join(',')}`)
+  }
+  return { slug, ok, skip, fail: fail.length }
+}
+
+async function main() {
+  await loadEnv()
+
+  const slugs = ALL ? await bookSlugs() : [value('book')].filter(Boolean)
+  if (slugs.length === 0) {
+    console.error('Which book? Pass --book <slug> or --all.')
+    console.error(`Available: ${(await bookSlugs()).join(', ')}`)
+    process.exit(1)
+  }
+
+  if (!DRY) console.log(`Model: ${DEFAULT_IMAGE_MODEL}  concurrency: ${CONCURRENCY}`)
+
+  let generated = 0
+  for (const slug of slugs) {
+    const r = await runBook(slug)
+    generated += r.ok
+  }
+
+  if (generated > 0) {
+    // The reader loads .webp. A fresh PNG render is ~2.3 MB and is not served at
+    // all until converted, so this is the required next step.
     console.log('\nNext: node scripts/optimize-books.mjs --prune')
   }
 }
 
-main().catch((e) => { console.error(e); process.exit(1) })
+main().catch((e) => {
+  console.error(e)
+  process.exit(1)
+})

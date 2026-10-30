@@ -1,47 +1,71 @@
-// Quick authoring audit: word/paragraph/char counts per page for a book's prose.
-// Gate for the reader-layout word budget (target ~35, ceiling ~50 words/page).
-// Run: node scripts/audit-text.mjs [book-id]   (defaults to nibs-perfect-acorn)
-import { readFile } from 'node:fs/promises'
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+// Audit a book's prose against the reader-layout word budget.
+//
+// Used to regex the source of book.ts looking for `page: N, text: \`...\``,
+// which meant reformatting the file could silently stop it finding any pages at
+// all and it would report a clean pass on nothing. It now imports the book and
+// runs the same validator the authoring engine and the image generator use, so
+// there is one definition of "this book is acceptable".
+//
+// Run: node scripts/audit-text.mjs [book-slug]     (default: every book)
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const bookId = process.argv[2] || 'nibs-perfect-acorn'
-const src = await readFile(path.resolve(__dirname, `../books/${bookId}/book.ts`), 'utf8')
+import { loadBook, bookSlugs } from './lib/book-source.mjs'
+import {
+  validateBook,
+  wordCount,
+  paragraphCount,
+  WORD_CEILING,
+  WORD_TARGET_MIN,
+  WORD_TARGET_MAX,
+  PARAGRAPH_CEILING,
+} from './lib/validate-book.mjs'
 
-// Match: page: N, \n text: `...`
-const rx = /page:\s*(\d+),\s*\r?\n\s*text:\s*`([\s\S]*?)`/g
-let m
-const rows = []
-while ((m = rx.exec(src))) {
-  const page = Number(m[1])
-  const text = m[2].replace(/\\n/g, '\n')
-  const words = text.split(/\s+/).filter(Boolean).length
-  const paras = text.split(/\n\n+/).filter((s) => s.trim()).length
-  const chars = text.length
-  rows.push({ page, words, paras, chars })
-}
+const only = process.argv.slice(2).filter((a) => !a.startsWith('--'))
+const verbose = process.argv.includes('--pages')
+const slugs = only.length ? only : await bookSlugs()
 
-console.log('page  words  paras  chars')
-for (const r of rows) {
+let failed = 0
+
+for (const slug of slugs) {
+  const { book, refs, bios } = await loadBook(slug)
+  const { errors, warnings, stats } = validateBook({ book, refs, bios })
+
+  console.log(`\n${book.title}  (${slug})`)
   console.log(
-    String(r.page).padStart(4) +
-      String(r.words).padStart(7) +
-      String(r.paras).padStart(7) +
-      String(r.chars).padStart(7),
+    `  ${stats.pages} pages · ${stats.minWords}-${stats.maxWords} words · avg ${stats.avgWords} · spread ${stats.spread}`,
   )
-}
-const words = rows.map((r) => r.words)
-console.log('---')
-console.log('min', Math.min(...words), 'max', Math.max(...words), 'avg', Math.round(words.reduce((a, b) => a + b, 0) / words.length))
-console.log('longest pages:', [...rows].sort((a, b) => b.words - a.words).slice(0, 3).map((r) => `p${r.page}(${r.words}w)`).join(', '))
 
-// Gate: word budget from reader-layout steering.
-const CEILING = 50
-const over = rows.filter((r) => r.words > CEILING || r.paras > 3)
-if (over.length) {
-  console.log(`\nFAIL: ${over.map((r) => `p${r.page}(${r.words}w/${r.paras}para)`).join(', ')} exceed the ~${CEILING}-word / 3-paragraph budget. Split them.`)
-  process.exitCode = 1
-} else {
-  console.log(`\nPASS: every page is within the word budget (<= ${CEILING} words, <= 3 paragraphs).`)
+  if (verbose) {
+    console.log('  page  words  paras')
+    for (const p of book.pages) {
+      const w = wordCount(p.text)
+      const para = paragraphCount(p.text)
+      const mark =
+        w > WORD_CEILING || para > PARAGRAPH_CEILING
+          ? ' FAIL'
+          : w > WORD_TARGET_MAX || w < WORD_TARGET_MIN
+            ? ' ~'
+            : ''
+      console.log(
+        `  ${String(p.page).padStart(4)}${String(w).padStart(7)}${String(para).padStart(7)}${mark}`,
+      )
+    }
+  }
+
+  for (const e of errors) console.log(`  ERROR  ${e}`)
+  for (const w of warnings) console.log(`  warn   ${w}`)
+
+  if (errors.length) {
+    failed += 1
+    console.log(`  FAIL: ${errors.length} error(s)`)
+  } else {
+    console.log(
+      `  PASS: every page within ${WORD_CEILING} words and ${PARAGRAPH_CEILING} paragraphs` +
+        (warnings.length ? ` (${warnings.length} warning(s))` : ''),
+    )
+  }
 }
+
+console.log(
+  `\n${slugs.length - failed}/${slugs.length} books pass. Comfortable band is ${WORD_TARGET_MIN}-${WORD_TARGET_MAX} words.`,
+)
+if (failed) process.exit(1)

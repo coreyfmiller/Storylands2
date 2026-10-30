@@ -17,15 +17,28 @@
 // Voice: warm, gentle, luminous; Lumi is caring and a touch bossy in her helpfulness; the
 // lesson (letting someone be brave is its own kind of light) is SHOWN. Textless 9:16 art.
 
-import { pageArt, type Book, type BookPage, type IllustrationManifest } from '../types'
+import { pageArt, type Book, type BookPage, type IllustrationManifest } from '../types.ts'
 
 // Re-exported so anything that imported these from this module still resolves.
 export type { Book, BookPage, IllustrationManifest }
 
+/**
+ * Approved reference art, seeded into every page prompt that character appears on.
+ * Paths resolve against assets/ — these are generation masters and are not served.
+ */
 export const CHARACTER_REFS: Record<string, string> = {
-  lumi: 'characters/lumi.png',
+  lumi:
+    'characters/lumi.png',
 }
 
+/** Short on-model description, written into the prompt alongside the reference. */
+export const CHARACTER_BIOS: Record<string, string> = {
+  lumi:
+    'Lumi, a cute small fluffy snowy owl (owlet): white feathers with soft grey-brown speckles and little heart-shaped spots, big round expressive amber-gold eyes, feathered white eyebrows, a tiny orange-yellow hooked beak often in a small happy smile, fluffy white wings with faint barred markings, and small orange-yellow talons; she carries a glowing star-shaped lantern',
+}
+
+// Never allowed in any illustration in this book. The first two are product rules:
+// all words live in the reader's text panel, and a blank sign looks like broken art.
 const forbiddenAlways = [
   'any text, words, letters, numbers, or title in the image',
   'any sign, signpost, board, placard, label, or plaque',
@@ -52,7 +65,11 @@ const rawBook: Book = {
         timeOfDay: 'dusk, soft sunset',
         action: 'Lumi the small snowy owl perches proudly on a branch holding her glowing star-shaped lantern, lighting the path below, looking capable and pleased',
         emotionalBeat: 'proud purpose; she is the dependable light',
-        requiredVisualFacts: ['Lumi the small white speckled owl with big amber eyes', 'her glowing star-shaped lantern', 'a warm twilight valley with a distant lantern-lit village'],
+        requiredVisualFacts: [
+          'Lumi the small white speckled owl with big amber eyes',
+          'her glowing star-shaped lantern',
+          'a warm twilight valley with a distant lantern-lit village',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways],
         composition: 'Lumi on a branch with her star lantern casting warm light, valley glowing below, dusk sky, headroom',
       },
@@ -67,7 +84,11 @@ const rawBook: Book = {
         timeOfDay: 'dusk',
         action: 'A tiny firefly with a small soft glow flutters up to Lumi, who leans in kindly and reassuringly with her bright star lantern raised, taking charge',
         emotionalBeat: 'warm helpfulness, tipping into taking over',
-        requiredVisualFacts: ['a tiny firefly with a small gentle glow', 'Lumi leaning in kindly with her bright star lantern raised', 'warm dusk forest'],
+        requiredVisualFacts: [
+          'a tiny firefly with a small gentle glow',
+          'Lumi leaning in kindly with her bright star lantern raised',
+          'warm dusk forest',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways],
         composition: 'Lumi and the tiny glowing firefly close together, her lantern bright, soft twilight',
       },
@@ -82,7 +103,11 @@ const rawBook: Book = {
         timeOfDay: 'evening, deepening blue',
         action: 'Lumi leads confidently down a forest path holding her big bright star lantern, while the tiny firefly behind her dims its own little glow, gently waved off',
         emotionalBeat: 'over-helping; unintentionally keeping the little one small',
-        requiredVisualFacts: ['Lumi leading with her bright star lantern', 'the tiny firefly behind her with its glow dimmed/held back', 'a winding twilight forest path'],
+        requiredVisualFacts: [
+          'Lumi leading with her bright star lantern',
+          'the tiny firefly behind her with its glow dimmed/held back',
+          'a winding twilight forest path',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways],
         composition: 'Lumi ahead and bright, the little firefly small and dim behind; gentle blue evening',
       },
@@ -97,7 +122,11 @@ const rawBook: Book = {
         timeOfDay: 'evening',
         action: 'Lumi busily lights the way over a mossy log with her star lantern, doing everything herself, the little firefly just following along doing nothing',
         emotionalBeat: 'busy self-importance; doing it all',
-        requiredVisualFacts: ['Lumi actively lighting the way over a mossy log with her lantern', 'the tiny firefly following passively', 'twilight forest detail'],
+        requiredVisualFacts: [
+          'Lumi actively lighting the way over a mossy log with her lantern',
+          'the tiny firefly following passively',
+          'twilight forest detail',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways],
         composition: 'Lumi central and busy with her light, firefly small alongside, cozy evening',
       },
@@ -112,7 +141,11 @@ const rawBook: Book = {
         timeOfDay: 'night, deep blue',
         action: 'Lumi pauses on the path as her star lantern flickers and dims, its light wavering, a flicker of worry crossing her face',
         emotionalBeat: 'the first wobble; her reliable light is failing',
-        requiredVisualFacts: ['Lumis star lantern flickering and dimming', 'a flicker of worry on Lumis face', 'the deep-blue night forest around her'],
+        requiredVisualFacts: [
+          'Lumis star lantern flickering and dimming',
+          'a flicker of worry on Lumis face',
+          'the deep-blue night forest around her',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways, 'total scary darkness (keep it soft, deep-blue, cozy)'],
         composition: 'Lumi and her failing lantern the focus, soft dark forest around, gentle not scary',
       },
@@ -127,7 +160,11 @@ const rawBook: Book = {
         timeOfDay: 'night, soft moonlit dark',
         action: 'Lumi sits with her now-dark star lantern, feathers drawn in, looking small and uncertain in the soft moonlit dark, the confident helper suddenly unsure',
         emotionalBeat: 'the low point: the light-giver is now the one in the dark',
-        requiredVisualFacts: ['Lumis star lantern now dark and unlit', 'Lumi looking small, uncertain, feathers drawn in', 'soft moonlit darkness, gentle not frightening'],
+        requiredVisualFacts: [
+          'Lumis star lantern now dark and unlit',
+          'Lumi looking small, uncertain, feathers drawn in',
+          'soft moonlit darkness, gentle not frightening',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways, 'harsh or scary darkness'],
         composition: 'small Lumi with her dark lantern in soft moonlit dark, tender and quiet, headroom',
       },
@@ -142,7 +179,12 @@ const rawBook: Book = {
         timeOfDay: 'night, only the fireflys tiny glow for light',
         action: 'In the dark, the tiny firefly is the ONLY source of light, glowing warmly beside Lumi and lighting a small circle around them; Lumi holds her dark, unlit star lantern and gazes at the fireflys glow with surprise and dawning hope',
         emotionalBeat: 'the turn: Lumis light is out, and the little one has a light of its own',
-        requiredVisualFacts: ['the tiny firefly is the single source of light, glowing warmly in the dark', 'Lumis star lantern held but DARK and unlit (no glow from the lantern at all)', 'a small circle of warm firefly-light in the surrounding dark', 'Lumis surprised, hopeful face lit only by the firefly'],
+        requiredVisualFacts: [
+          'the tiny firefly is the single source of light, glowing warmly in the dark',
+          'Lumis star lantern held but DARK and unlit (no glow from the lantern at all)',
+          'a small circle of warm firefly-light in the surrounding dark',
+          'Lumis surprised, hopeful face lit only by the firefly',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways, 'the star lantern glowing or lit', 'any light source other than the firefly (besides soft moonlight)'],
         composition: 'the firefly is the one small warm light; Lumis unlit dark lantern clearly visible; Lumi leaning toward the firefly hopefully, soft moonlit dark around',
       },
@@ -157,7 +199,11 @@ const rawBook: Book = {
         timeOfDay: 'night',
         action: 'Lumi looks warmly and a little humbled at the glowing firefly, a gentle realizing smile, the two lit together in the small warm glow',
         emotionalBeat: 'understanding and humility; seeing the little one truly',
-        requiredVisualFacts: ['Lumi with a warm, humbled, realizing expression', 'the firefly glowing proudly beside her', 'the two lit in a small shared circle of light'],
+        requiredVisualFacts: [
+          'Lumi with a warm, humbled, realizing expression',
+          'the firefly glowing proudly beside her',
+          'the two lit in a small shared circle of light',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways],
         composition: 'tender close two-shot in the firefly glow, warm in the soft dark, headroom',
       },
@@ -172,7 +218,11 @@ const rawBook: Book = {
         timeOfDay: 'night',
         action: 'Lumi and the brightly glowing firefly set off down the path together, the firefly lighting the way now while Lumi follows and guides, a true team',
         emotionalBeat: 'shared courage; letting the little one lead',
-        requiredVisualFacts: ['the firefly glowing brightly and leading', 'Lumi walking/flying alongside, following its light, encouraging', 'a warm little pool of light on the dark path'],
+        requiredVisualFacts: [
+          'the firefly glowing brightly and leading',
+          'Lumi walking/flying alongside, following its light, encouraging',
+          'a warm little pool of light on the dark path',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways],
         composition: 'the two heading down the path together, firefly light leading, hopeful, soft dark',
       },
@@ -187,7 +237,11 @@ const rawBook: Book = {
         timeOfDay: 'night',
         action: 'Lumi and the glowing firefly travel together along the path as the warm lights of the distant village begin to appear ahead through the trees',
         emotionalBeat: 'teamwork working; home coming into view',
-        requiredVisualFacts: ['Lumi and the glowing firefly traveling together', 'the warm lights of the distant village appearing ahead', 'a hopeful warm-in-the-dark mood'],
+        requiredVisualFacts: [
+          'Lumi and the glowing firefly traveling together',
+          'the warm lights of the distant village appearing ahead',
+          'a hopeful warm-in-the-dark mood',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways],
         composition: 'the pair with firefly light, distant village glow ahead drawing them on, warm night',
       },
@@ -202,7 +256,11 @@ const rawBook: Book = {
         timeOfDay: 'night, warm village lanterns glowing',
         action: 'At the glowing edge of the village, the little firefly flies off glowing proudly toward tiny waiting firefly lights, while Lumi watches warmly, happy for it',
         emotionalBeat: 'joy and pride in the little one; safe arrival',
-        requiredVisualFacts: ['the warm lantern-lit village edge', 'the little firefly glowing proudly flying toward tiny waiting firefly lights', 'Lumi watching warmly and happily'],
+        requiredVisualFacts: [
+          'the warm lantern-lit village edge',
+          'the little firefly glowing proudly flying toward tiny waiting firefly lights',
+          'Lumi watching warmly and happily',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways],
         composition: 'warm village glow, the proud little firefly reunited, Lumi watching fondly, cozy night',
       },
@@ -217,7 +275,11 @@ const rawBook: Book = {
         timeOfDay: 'night, starry and peaceful',
         action: 'Lumi flies peacefully home through the starry night above the glowing valley, carrying her dark lantern, wearing a calm, content, wiser smile',
         emotionalBeat: 'quiet growth; content even without her own light',
-        requiredVisualFacts: ['Lumi flying peacefully under a starry sky above the glowing valley', 'her star lantern carried but unlit', 'a calm, content, wiser expression'],
+        requiredVisualFacts: [
+          'Lumi flying peacefully under a starry sky above the glowing valley',
+          'her star lantern carried but unlit',
+          'a calm, content, wiser expression',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways],
         composition: 'Lumi gliding across a starry sky over the warm valley, serene, headroom for stars',
       },
@@ -232,7 +294,11 @@ const rawBook: Book = {
         timeOfDay: 'dusk, warm and glowing',
         action: 'Lumi perches happily with her star lantern glowing again, surrounded by many tiny fireflies all glowing together, sharing the light, the valley warm and bright',
         emotionalBeat: 'the warm, complete, happy ending: shared light, friendship, belonging',
-        requiredVisualFacts: ['Lumi with her star lantern glowing again', 'many tiny fireflies glowing all around her, sharing the light', 'a warm, joyful, glowing valley'],
+        requiredVisualFacts: [
+          'Lumi with her star lantern glowing again',
+          'many tiny fireflies glowing all around her, sharing the light',
+          'a warm, joyful, glowing valley',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways],
         composition: 'warm glowing final image; Lumi and many little shared lights together, bright and happy, headroom',
       },
@@ -240,6 +306,8 @@ const rawBook: Book = {
   ],
 }
 
+// `art` is derived, never written by hand: pageArt owns the directory, the zero
+// padding and the file extension, so changing the image format is one edit.
 export const book: Book = {
   ...rawBook,
   pages: rawBook.pages.map((p) => ({

@@ -5,14 +5,14 @@
 // book needed its own hand-written four-line route file; adding a book is now
 // adding a line here.
 
-import { book as finn } from './finn-little-boat/book'
-import { book as lumi } from './lumi-lights-way/book'
-import { book as maple } from './maple-backyard-night/book'
-import { book as nibs } from './nibs-perfect-acorn/book'
-import { book as oliver } from './oliver-vacuum/book'
-import { book as pip } from './pip-first-flame/book'
-import { book as rusty } from './rusty-loud-day/book'
-import type { Book } from './types'
+import { book as finn } from './finn-little-boat/book.ts'
+import { book as lumi } from './lumi-lights-way/book.ts'
+import { book as maple } from './maple-backyard-night/book.ts'
+import { book as nibs } from './nibs-perfect-acorn/book.ts'
+import { book as oliver } from './oliver-vacuum/book.ts'
+import { book as pip } from './pip-first-flame/book.ts'
+import { book as rusty } from './rusty-loud-day/book.ts'
+import type { Book } from './types.ts'
 
 const all: Book[] = [pip, oliver, maple, finn, nibs, rusty, lumi]
 

@@ -14,15 +14,28 @@
 // Voice: warm, funny, close third person; Maple is plucky and dramatic; comedy from the gap
 // between her grand plans and the harmless truth. Theme shown, never stated. Textless 9:16 art.
 
-import { pageArt, type Book, type BookPage, type IllustrationManifest } from '../types'
+import { pageArt, type Book, type BookPage, type IllustrationManifest } from '../types.ts'
 
 // Re-exported so anything that imported these from this module still resolves.
 export type { Book, BookPage, IllustrationManifest }
 
+/**
+ * Approved reference art, seeded into every page prompt that character appears on.
+ * Paths resolve against assets/ — these are generation masters and are not served.
+ */
 export const CHARACTER_REFS: Record<string, string> = {
-  maple: 'characters/maple.png',
+  maple:
+    'characters/maple.png',
 }
 
+/** Short on-model description, written into the prompt alongside the reference. */
+export const CHARACTER_BIOS: Record<string, string> = {
+  maple:
+    'Maple, a cute young raccoon: grey-brown fur with a classic black bandit mask across the eyes, a cream/white muzzle and belly, small rounded ears, a big bushy ringed tail (black and grey bands), little black paws, big warm brown eyes and a small friendly toothy grin; she wears a teal-blue camping backpack with an orange bedroll on top and tan straps',
+}
+
+// Never allowed in any illustration in this book. The first two are product rules:
+// all words live in the reader's text panel, and a blank sign looks like broken art.
 const forbiddenAlways = [
   'any text, words, letters, numbers, or title in the image',
   'any sign, signpost, board, placard, label, or plaque',
@@ -49,7 +62,11 @@ const rawBook: Book = {
         timeOfDay: 'late afternoon, warm golden light',
         action: 'Maple the young raccoon stands proudly beside her small pitched tent with her teal backpack, paws on hips, beaming, ready for her big adventure',
         emotionalBeat: 'bold, proud, brimming with confidence',
-        requiredVisualFacts: ['Maple the raccoon with black bandit mask, ringed tail, cream belly, and teal backpack', 'a small pitched tent in a forest clearing by a lake', 'warm afternoon light'],
+        requiredVisualFacts: [
+          'Maple the raccoon with black bandit mask, ringed tail, cream belly, and teal backpack',
+          'a small pitched tent in a forest clearing by a lake',
+          'warm afternoon light',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways, 'darkness or night yet'],
         composition: 'Maple proud and central beside her tent, lake and mountains behind, warm and inviting',
       },
@@ -60,11 +77,15 @@ const rawBook: Book = {
       art: '',
       manifest: {
         charactersPresent: ['maple'],
-        location: 'inside/beside the tent at the campsite',
+        location: 'beside the tent at the campsite',
         timeOfDay: 'early evening, sun getting low',
         action: 'Maple sits cross-legged laying out her gear — a flashlight, a little pile of snacks, a hand-drawn checklist with no readable text — looking very organized and pleased',
         emotionalBeat: 'earnest over-preparation; comic self-importance',
-        requiredVisualFacts: ['Maple with a flashlight and a small pile of snacks laid out', 'a little hand-drawn checklist with NO readable words, just marks', 'a confident, tidy, prepared pose'],
+        requiredVisualFacts: [
+          'Maple with a flashlight and a small pile of snacks laid out',
+          'a little hand-drawn checklist with NO readable words, just marks',
+          'a confident, tidy, prepared pose',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways, 'readable words or letters on the list', 'night yet'],
         composition: 'Maple central with her neatly arranged gear, warm low-sun light, headroom above',
       },
@@ -79,7 +100,11 @@ const rawBook: Book = {
         timeOfDay: 'dusk turning to night',
         action: 'Maple sits by her tent looking around as the clearing darkens into deep blues, her confident smile fading into uncertainty, clutching her flashlight',
         emotionalBeat: 'confidence wobbling as the dark arrives',
-        requiredVisualFacts: ['Maple beside her tent as the forest turns deep blue with dusk', 'she clutches her flashlight, smile fading', 'first stars appearing'],
+        requiredVisualFacts: [
+          'Maple beside her tent as the forest turns deep blue with dusk',
+          'she clutches her flashlight, smile fading',
+          'first stars appearing',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways, 'truly frightening darkness (keep it soft, cozy-blue, not scary)'],
         composition: 'Maple small and central in a softening blue clearing, gentle not scary, one warm flashlight glow',
       },
@@ -94,7 +119,11 @@ const rawBook: Book = {
         timeOfDay: 'night, soft moonlight',
         action: 'Maple crouches comically behind a tiny hastily-built wall of pinecones, peeking over it with wide eyes toward a tree, her flashlight beam pointing up',
         emotionalBeat: 'spooked but plucky; a very questionable plan',
-        requiredVisualFacts: ['Maple hiding behind a small silly wall of pinecones', 'peeking over it with big wide eyes', 'her flashlight beam pointing up toward a tree'],
+        requiredVisualFacts: [
+          'Maple hiding behind a small silly wall of pinecones',
+          'peeking over it with big wide eyes',
+          'her flashlight beam pointing up toward a tree',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways, 'an actual monster', 'a scary creature'],
         composition: 'comic: tiny pinecone wall foreground, Maple peeking, soft moonlit clearing, headroom',
       },
@@ -107,9 +136,13 @@ const rawBook: Book = {
         charactersPresent: ['maple'],
         location: 'the night campsite',
         timeOfDay: 'night, moonlight',
-        action: 'Maple sits with a blanket pulled up over her head like a hood, only her masked face and shaking ringed tail poking out, eyes darting nervously',
+        action: 'Maple sits with a blanket pulled up over her head like a hood, only her masked face and bushy ringed tail poking out, eyes darting nervously',
         emotionalBeat: 'trying to be brave but genuinely scared; tender and funny',
-        requiredVisualFacts: ['Maple with a blanket pulled over her head, face and ringed tail poking out', 'a nervous, wide-eyed expression', 'her tail visibly bushed up / shaking'],
+        requiredVisualFacts: [
+          'Maple with a blanket pulled over her head, face and ringed tail poking out',
+          'a nervous, wide-eyed expression',
+          'her tail visibly bushed up',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways, 'anything actually threatening'],
         composition: 'Maple bundled and small in the soft-dark clearing, cozy-scared not frightening',
       },
@@ -124,7 +157,11 @@ const rawBook: Book = {
         timeOfDay: 'night, moonlight',
         action: 'Maple stands half-turned toward home with her backpack half-on, then pauses, one paw raised, a new determined thought crossing her face',
         emotionalBeat: 'the turn: choosing to look instead of run',
-        requiredVisualFacts: ['Maple pausing mid-flee with her backpack half-on', 'a determined, deciding expression', 'soft moonlit clearing'],
+        requiredVisualFacts: [
+          'Maple pausing mid-flee with her backpack half-on',
+          'a determined, deciding expression',
+          'soft moonlit clearing',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways, 'scary imagery'],
         composition: 'Maple caught in a turning pose, moonlit, calm; the decision is the focus',
       },
@@ -139,7 +176,11 @@ const rawBook: Book = {
         timeOfDay: 'night, moonlight',
         action: 'Maple bravely shines her flashlight up to reveal a small sleepy round owl on a branch blinking gently down; Maple looks relieved and a little sheepish',
         emotionalBeat: 'relief and gentle humor; the monster was nothing scary',
-        requiredVisualFacts: ['Maple shining her flashlight up at a small friendly sleepy owl on a branch', 'the owl blinking gently, not scary', 'Maples relieved, sheepish face'],
+        requiredVisualFacts: [
+          'Maple shining her flashlight up at a small friendly sleepy owl on a branch',
+          'the owl blinking gently, not scary',
+          'Maples relieved, sheepish face',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways, 'a scary or large owl; a threatening creature'],
         composition: 'flashlight beam connecting Maple below to the gentle owl above; soft and warm',
       },
@@ -154,7 +195,11 @@ const rawBook: Book = {
         timeOfDay: 'night, moonlight',
         action: 'Maple crouches with her flashlight examining a fallen pinecone and a little line of her own paw prints in the dirt, understanding dawning, calmer now',
         emotionalBeat: 'understanding; the scary sounds were ordinary all along',
-        requiredVisualFacts: ['Maple calmly examining a fallen pinecone and a line of paw prints with her flashlight', 'a calmer, understanding expression', 'the gentle moonlit clearing'],
+        requiredVisualFacts: [
+          'Maple calmly examining a fallen pinecone and a line of paw prints with her flashlight',
+          'a calmer, understanding expression',
+          'the gentle moonlit clearing',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways, 'scary imagery'],
         composition: 'Maple low and curious with her flashlight on ordinary objects; calm night',
       },
@@ -169,7 +214,11 @@ const rawBook: Book = {
         timeOfDay: 'night, soft moonlight',
         action: 'Maple sits calmly outside her tent, shoulders relaxed, letting out a relieved breath, a small wise smile, her tail no longer bushed',
         emotionalBeat: 'quiet growth; making peace with being scared and brave at once',
-        requiredVisualFacts: ['Maple sitting relaxed and calm outside her tent', 'a soft, relieved, slightly wiser smile', 'a peaceful moonlit clearing'],
+        requiredVisualFacts: [
+          'Maple sitting relaxed and calm outside her tent',
+          'a soft, relieved, slightly wiser smile',
+          'a peaceful moonlit clearing',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways, 'scary imagery'],
         composition: 'calm centered Maple, softened posture, gentle moonlight, headroom',
       },
@@ -184,7 +233,11 @@ const rawBook: Book = {
         timeOfDay: 'night, brilliant stars',
         action: 'Maple lies back on her bedroll gazing up in wonder at a vast sky full of stars, mouth open in awe, flashlight off beside her',
         emotionalBeat: 'wonder; the dark reveals something beautiful she would never have seen at home',
-        requiredVisualFacts: ['Maple lying back gazing up at a huge sky full of bright stars', 'an awed, delighted expression', 'the peaceful moonlit campsite around her'],
+        requiredVisualFacts: [
+          'Maple lying back gazing up at a huge sky full of bright stars',
+          'an awed, delighted expression',
+          'the peaceful moonlit campsite around her',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways, 'scary imagery'],
         composition: 'big beautiful starry sky filling the frame, Maple small and wonderstruck below, headroom for stars',
       },
@@ -199,7 +252,11 @@ const rawBook: Book = {
         timeOfDay: 'night, starry and peaceful',
         action: 'Maple sits happily wrapped in her blanket by her tent under the stars, the little owl on a branch nearby, both content and peaceful',
         emotionalBeat: 'cozy contentment; the dark is friendly now',
-        requiredVisualFacts: ['Maple content and cozy in her blanket by her tent under a starry sky', 'the small friendly owl on a nearby branch', 'a warm, peaceful night mood'],
+        requiredVisualFacts: [
+          'Maple content and cozy in her blanket by her tent under a starry sky',
+          'the small friendly owl on a nearby branch',
+          'a warm, peaceful night mood',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways, 'scary imagery'],
         composition: 'cozy wide night scene; Maple and the distant owl both visible, stars above, calm',
       },
@@ -214,7 +271,11 @@ const rawBook: Book = {
         timeOfDay: 'early morning, golden sunrise',
         action: 'Maple stands proudly with her packed teal backpack and rolled tent in warm morning light, beaming, her checklist tucked under one arm, triumphant and happy',
         emotionalBeat: 'the warm, complete, happy ending: proud, grown, still herself',
-        requiredVisualFacts: ['Maple with her packed teal backpack and rolled-up tent in golden morning light', 'a proud, happy, triumphant expression', 'the sunny lake and forest around her'],
+        requiredVisualFacts: [
+          'Maple with her packed teal backpack and rolled-up tent in golden morning light',
+          'a proud, happy, triumphant expression',
+          'the sunny lake and forest around her',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways, 'readable words on the list', 'night'],
         composition: 'warm sunrise, Maple proud and central, the friendly forest bright around her, headroom',
       },
@@ -229,7 +290,11 @@ const rawBook: Book = {
         timeOfDay: 'bright cheerful morning',
         action: 'Maple sets off down a sunny forest trail with her backpack and walking stick, tail up, grinning with a new plan, adventurous and confident, the world bright ahead',
         emotionalBeat: 'the forward-looking, happy send-off: braver, bolder, off on the next adventure',
-        requiredVisualFacts: ['Maple striding happily down a sunny forest trail with her backpack and a walking stick', 'a big confident grin, tail up', 'a bright, hopeful, adventurous mood'],
+        requiredVisualFacts: [
+          'Maple striding happily down a sunny forest trail with her backpack and a walking stick',
+          'a big confident grin, tail up',
+          'a bright, hopeful, adventurous mood',
+        ],
         forbiddenVisualFacts: [...forbiddenAlways, 'scary imagery', 'night'],
         composition: 'Maple heading off down the trail toward bright open forest, hopeful and warm, headroom',
       },
@@ -237,6 +302,8 @@ const rawBook: Book = {
   ],
 }
 
+// `art` is derived, never written by hand: pageArt owns the directory, the zero
+// padding and the file extension, so changing the image format is one edit.
 export const book: Book = {
   ...rawBook,
   pages: rawBook.pages.map((p) => ({

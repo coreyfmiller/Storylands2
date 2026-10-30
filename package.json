@@ -7,7 +7,11 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "check": "tsc --noEmit && next build",
+    "test": "node --test \"scripts/__tests__/*.test.mjs\" \"lib/__tests__/*.test.ts\"",
+    "check": "npm run test && node scripts/audit-text.mjs && tsc --noEmit && next build",
+    "doctor": "node scripts/doctor.mjs",
+    "create": "node scripts/create-book.mjs",
+    "illustrate": "node scripts/generate-book.mjs",
     "audit:text": "node scripts/audit-text.mjs",
     "art": "node scripts/optimize-art.mjs",
     "books": "node scripts/optimize-books.mjs --prune"
