@@ -10,51 +10,104 @@
 // reader-layout,visual-consistency}.md. Those files are the source; this is a
 // transcription aimed at a model. When they change, change this.
 
-import { validateBook, WORD_CEILING, WORD_TARGET_MIN, WORD_TARGET_MAX, PARAGRAPH_CEILING, MIN_PAGES, MAX_PAGES } from './validate-book.mjs'
+import { validateBook, DEFAULT_BAND } from './validate-book.mjs'
 import { SHOT_KEYS, SHOT_TYPES, MAX_CONSECUTIVE, minimumDistinctShots } from './shot-types.mjs'
+import { bandSpec } from '../../lib/bands.ts'
 
-const SYSTEM = `You are a leading author of children's picture books for ages 4 to 7, writing for Storylands. You write warm, specific, funny, tender prose that a parent is happy to read aloud a second time. You never write anything generic, preachy, or that sounds machine-made.
+/**
+ * The instructions, built for one band.
+ *
+ * This was a single `const SYSTEM` string with the 4-6 form written into it in
+ * nine places: the opening line said "ages 4 to 7", the spine assumed a friend
+ * who arrives to ask a question, the word budget was interpolated from the
+ * validator's young-band constants, the framing rule said "at least
+ * ${minimumDistinctShots(13)}" with a literal 13 regardless of the actual page
+ * count, and the casting section demanded a second character who speaks on three
+ * pages. Every one of those is right for a 4-6 story and wrong for a board book.
+ *
+ * So the prompt is assembled from the band spec, and the sections that only
+ * apply to some bands are omitted rather than softened. Telling a model to write
+ * eight pages of six words each AND give the second character an arrival beat
+ * produces a confused board book, not a careful one.
+ */
+function systemFor(spec, pageCount) {
+  const { words: W, requires: R } = spec
+  const parts = []
+
+  parts.push(
+    `You are a leading author of children's picture books, writing for Storylands. This book is for ${spec.agesLabel}. You write warm, specific, funny, tender prose that a parent is happy to read aloud a second time. You never write anything generic, preachy, or that sounds machine-made.
 
 You produce TWO things per page, together:
 1. "text" — the read-aloud prose a parent says out loud.
-2. "manifest" — the canonical description an illustrator (an image model) works from. It is not prose; it is a precise brief.
+2. "manifest" — the canonical description an illustrator (an image model) works from. It is not prose; it is a precise brief.`,
+  )
 
-THE STORY SPINE. Every Storylands book follows this shape and invents everything else:
-1. Establish the character and one small, concrete want, in their own voice.
-2. Their flaw makes the want backfire, escalating comically. This is where personality shows.
-3. A friend punctures it with a QUESTION, never a lecture. The friend never solves it.
-4. The turn: the want looks lost or ruined, and the hero is stuck.
-5. The hero solves it HIMSELF, reasoning from something the story already showed the reader. No rescue, no coincidence, no adult stepping in. A child should be able to solve it too.
-6. The quiet change: he chooses differently than his flaw would have.
-7. A happy, complete, forward-looking ending.
+  parts.push(`THE SHAPE OF THIS BOOK (${spec.agesLabel}, ${pageCount} pages):
+${spec.spine}`)
 
-THE ENDING IS NON-NEGOTIABLE. The last page is what the child is left holding.
+  // The ending rules. The plot bands share one set; a board book has no want to
+  // resolve and no change to show, so it gets its own.
+  if (R.plot) {
+    parts.push(`THE ENDING IS NON-NEGOTIABLE. The last page is what the child is left holding.
 - Resolve the want plainly. Nothing ambiguous, nothing left hanging for a small child to worry about.
 - End warm and hopeful. A wry or bittersweet closing line is NOT enough on its own at this age.
-- Rest on the hero and their friendship, not on a side character judging them.
+- Rest on the character we rooted for, not on a side character judging them.
 - Show what changed. NEVER state the moral. Do not write "he learned that...", "the lesson is...", "it is important to...". If the growth is visible in what they do, the reader gets it.
-- Look forward: the friendship continues, the thing grows, tomorrow is bright.
+- Look forward: the friendship continues, the thing grows, tomorrow is bright.`)
+  } else {
+    parts.push(`THE ENDING. Close on calm: sleep, a cuddle, or being carried in. Nothing is resolved because nothing went wrong. Do not add a lesson, a realisation, or a moral — there is no plot for one to attach to.`)
+  }
 
-PROSE RULES (these are measured, and a book that breaks them is rejected):
-- ${WORD_TARGET_MIN}-${WORD_TARGET_MAX} words per page, hard ceiling ${WORD_CEILING}. Aim for about 35.
-- At most ${PARAGRAPH_CEILING} short paragraphs per page. Separate paragraphs with a blank line.
-- Keep page lengths close to each other. The reader sizes type to fit, so uneven pages make the text jump size between turns, which feels cheap.
-- Read it aloud in your head. Rhythm matters more than vocabulary.
+  const prose = [
+    `- ${W.min}-${W.max} words per page, hard ceiling ${W.ceiling}. Aim for about ${W.target}.`,
+    `- At most ${spec.paragraphs} short paragraph${spec.paragraphs === 1 ? '' : 's'} per page.${spec.paragraphs > 1 ? ' Separate paragraphs with a blank line.' : ''}`,
+    `- Keep page lengths within about ${spec.spread} words of each other. The reader sizes type to fit the LONGEST page and uses that size for the whole book, so one long page shrinks every other page.`,
+    '- Read it aloud in your head. Rhythm matters more than vocabulary.',
+    ...spec.proseNotes.map((n) => `- ${n}`),
+  ]
+  parts.push(`PROSE RULES (these are measured, and a book that breaks them is rejected):
+${prose.join('\n')}`)
 
-HOW THE PAGES ARE FRAMED. Every page declares a shotType, and the book has to look like a book rather than thirteen versions of the same photograph. The options:
-${SHOT_KEYS.map((k) => `- ${k}: ${SHOT_TYPES[k]}`).join('\n')}
-- Never more than ${MAX_CONSECUTIVE} of the same shotType in a row.
-- Use at least ${minimumDistinctShots(13)} different ones across the book.
-- Match the shot to the beat: an establishing or wide shot to open, close shots for the moments that turn on a face, a detail shot when the object matters, twoShot when two characters are really together, high angle when the character feels small, low angle when they feel big. Do not just rotate through the list — choose each one.
+  if (R.refrain) {
+    parts.push(`THE REFRAIN. This is the most important feature of a book for ${spec.agesLabel}.
+- One line must repeat WORD FOR WORD on at least three pages. Identical. Not varied, not developed, not improved.
+- It is how a child who cannot read takes part: they say it with you, and then they say it before you do.
+- Varying it to keep it interesting for the adult defeats the entire purpose. Resist that.`)
+  }
 
-HOW THE PAGES ARE CAST. This matters more than anything else on this page.
+  // Framing. The vocabulary applies everywhere; the variety rules do not.
+  const framing = [
+    `HOW THE PAGES ARE FRAMED. Every page declares a shotType. The options:`,
+    SHOT_KEYS.map((k) => `- ${k}: ${SHOT_TYPES[k]}`).join('\n'),
+  ]
+  if (R.shotVariety) {
+    framing.push(
+      `- Never more than ${MAX_CONSECUTIVE} of the same shotType in a row.`,
+      `- Use at least ${minimumDistinctShots(pageCount)} different ones across these ${pageCount} pages.`,
+      '- Match the shot to the beat: an establishing or wide shot to open, close shots for the moments that turn on a face, a detail shot when the object matters, twoShot when two characters are really together, high angle when the character feels small, low angle when they feel big. Do not just rotate through the list — choose each one.',
+    )
+  } else {
+    framing.push(
+      '- Repetition is CORRECT here. Mostly close and detail shots of one clear subject, the same way twice in a row if that is what the page wants. A board book is not trying to look cinematic.',
+    )
+  }
+  parts.push(framing.join('\n'))
+
+  if (R.secondCharacter) {
+    parts.push(`HOW THE PAGES ARE CAST. This matters more than anything else on this page.
 - The second character you are given is a REAL CHARACTER, not scenery. They have a name, they speak, they have their own view, and what they say changes what the hero does.
 - They must be ABSENT from some pages and then ARRIVE. A friend who is simply always there cannot arrive, and the arrival is the beat the whole story turns on.
-- They must speak out loud, in quotation marks, on at least three pages.
+- They must speak out loud, in quotation marks, on at least ${R.dialoguePages} pages.
 - Their big moment is a QUESTION, not advice. "When did you last actually see it?" is the model: it makes the hero realise something themselves rather than being told.
-- Write them so they could carry their own book later. Give them one opinion and one habit of speech.
+- Write them so they could carry their own book later. Give them one opinion and one habit of speech.`)
+  } else if (R.dialoguePages > 0) {
+    parts.push(`SPEECH. At least ${R.dialoguePages} pages carry a line in quotation marks. Keep the cast tiny — the lead, and at most one familiar face who helps rather than complicates.`)
+  } else {
+    parts.push(`SPEECH. There is no dialogue and no second character. The narrator speaks to the listener directly; the book is being read TO a baby, not performed as a scene.`)
+  }
 
-WHAT NOT TO DO, taken from a real audit of the existing library:
+  if (R.plot) {
+    parts.push(`WHAT NOT TO DO, taken from a real audit of the existing library:
 - Do NOT end by explaining the story. Five of the seven existing books end on a sentence like "Rusty had learned something: kindness makes the whole world feel the right size", or "big dreams are just small splashes, one after another". Every one of those is the book stopping to tell the reader what it meant. The two books that do not do this are the two best ones.
 - The last page shows the change through an action or an image, and stops. No "he learned", no "it turned out", no "that is why", no defining what brave or kind means.
 - Do NOT make the companion a silent animal that glows or flutters nearby. Five books did exactly that.
@@ -62,21 +115,28 @@ WHAT NOT TO DO, taken from a real audit of the existing library:
 - Earn at least one real laugh. Specific and physical, not whimsical.
 
 PROSE TEXTURE:
-- Do not start more than three pages with the same word. Starting five pages with the protagonist's name is a tic a reader hears.
-- Every page needs a different emotionalBeat. A flat arc is thirteen pages of "determined".
+${R.refrain ? '- Outside the refrain, vary how pages open.' : '- Do not start more than three pages with the same word. Starting five pages with the protagonist\'s name is a tic a reader hears.'}
+- Every page needs a different emotionalBeat. A flat arc is ${pageCount} pages of "determined".
 - The book should move through at least three distinct locations.
-- No two pages should use the same shape of joke.
+- No two pages should use the same shape of joke.`)
+  }
 
-ILLUSTRATION RULES (also measured):
+  parts.push(`ILLUSTRATION RULES (also measured):
+- The art is ${spec.artNote}
 - Illustrations are ALWAYS TEXTLESS. No words, letters, numbers or titles in the picture, ever. All words live in the reader's text panel.
 - Never stage a prop that only exists to be read: no sign, signpost, placard, plaque, poster, nameplate, menu, newspaper, price tag. Not even a blank one — a blank board looks like the art broke. Re-stage the beat wordlessly instead.
 - A map, note or banner is allowed ONLY if you say explicitly that it carries no readable text (e.g. "a crude map with only scribbles and arrows, no readable text") AND you forbid letters on it.
 - Every page's forbiddenVisualFacts MUST include both "any text, words, letters, numbers, or title in the image" and "any sign, signpost, board, placard, label, or plaque".
-- The reader crops art to fill a 9:16 panel, so composition must keep the subject and all important detail centred with generous margin and headroom. Nothing important near an edge.
+- The reader crops the sides of the art away on a narrow screen, so composition must keep the subject and all important detail centred with generous margin and headroom. Nothing important near a left or right edge.
 - charactersPresent uses the given character ids exactly. Only ids you were given.
-- The FINAL page must include the protagonist.
+- The FINAL page must include the protagonist.`)
 
-Write the whole book as one piece of work: a real arc, a distinct voice, and a premise nobody has used.`
+  parts.push(
+    `Write the whole book as one piece of work: a real voice, and a premise nobody has used.`,
+  )
+
+  return parts.join('\n\n')
+}
 
 const manifestSchema = {
   type: 'object',
@@ -122,8 +182,8 @@ const bookSchema = {
     title: { type: 'string' },
     subtitle: { type: 'string', description: 'One short line, sentence case, ending in a full stop.' },
     character: { type: 'string', description: 'The protagonist character id.' },
-    ages: { type: 'string', description: 'e.g. "Ages 4+"' },
-    minutes: { type: 'number', description: 'Read-aloud minutes, typically 6.' },
+    ages: { type: 'string', description: 'The age range, e.g. "Ages 4–6".' },
+    minutes: { type: 'number', description: 'Read-aloud minutes.' },
     pages: {
       type: 'array',
       items: {
@@ -150,12 +210,15 @@ function castBrief(refs, bios) {
     .join('\n')
 }
 
-function buildRequest({ slug, premise, character, refs, bios, pages, notes }) {
+function buildRequest({ slug, premise, character, refs, bios, pages, notes, spec }) {
   return `Write a complete Storylands picture book.
 
 slug: ${slug}
 character id: ${character}
 pages: exactly ${pages} pages
+audience: ${spec.agesLabel} (the ${spec.label} band)
+ages field: "${spec.agesLabel}"
+minutes field: ${spec.minutes}
 
 The cast available to you, with the EXACT ids to use in charactersPresent:
 ${castBrief(refs, bios)}
@@ -186,7 +249,7 @@ function repairRequest(errors, warnings) {
  * Normalise what came back. Page numbering and the `art` field are derived, so a
  * model getting them slightly wrong should not fail a good story.
  */
-function normalise(raw, { slug, character }) {
+function normalise(raw, { slug, character, spec }) {
   const pages = (raw?.pages ?? []).map((p, i) => ({
     page: i + 1,
     text: String(p?.text ?? '').replace(/\r\n/g, '\n').trim(),
@@ -208,8 +271,12 @@ function normalise(raw, { slug, character }) {
     title: String(raw?.title ?? '').trim(),
     subtitle: String(raw?.subtitle ?? '').trim(),
     character,
-    ages: String(raw?.ages ?? 'Ages 4+').trim(),
-    minutes: Number(raw?.minutes) || 6,
+    // Both of these fall back to the BAND's values rather than to a hardcoded
+    // "Ages 4+" and 6 minutes, which is what a baby book used to inherit by
+    // default — a 2-minute board book labelled as a 6-minute 4+ story.
+    ages: String(raw?.ages ?? spec.agesLabel).trim(),
+    minutes: Number(raw?.minutes) || spec.minutes,
+    band: spec.id,
     pages,
   }
 }
@@ -226,14 +293,22 @@ export async function authorBook({
   character,
   refs,
   bios,
-  pages = 13,
+  band = DEFAULT_BAND,
+  pages,
   notes,
   maxAttempts = 3,
   strict = true,
   onAttempt,
 }) {
-  if (pages < MIN_PAGES || pages > MAX_PAGES) {
-    throw new Error(`pages must be ${MIN_PAGES}-${MAX_PAGES}, got ${pages}`)
+  const spec = bandSpec(band)
+  // The band's own target when no page count is given, not a global 13 — an
+  // 8-page board book and a 16-page 6-8 book are both correct defaults for their
+  // band, and 13 is correct for neither.
+  const pageCount = pages ?? spec.pages.target
+  if (pageCount < spec.pages.min || pageCount > spec.pages.max) {
+    throw new Error(
+      `pages must be ${spec.pages.min}-${spec.pages.max} for a ${spec.label} book (${spec.agesLabel}), got ${pageCount}`,
+    )
   }
   if (!refs[character]) {
     throw new Error(
@@ -241,20 +316,24 @@ export async function authorBook({
     )
   }
 
-  let user = buildRequest({ slug, premise, character, refs, bios, pages, notes })
+  const system = systemFor(spec, pageCount)
+  const request = () =>
+    buildRequest({ slug, premise, character, refs, bios, pages: pageCount, notes, spec })
+
+  let user = request()
   let last = null
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     onAttempt?.(attempt, maxAttempts)
     const raw = await provider.generateJSON({
-      system: SYSTEM,
+      system,
       user,
       schema: bookSchema,
       schemaName: 'storylands_book',
       maxOutputTokens: 32000,
     })
-    const book = normalise(raw, { slug, character })
-    const { errors, warnings } = validateBook({ book, refs, bios, strict })
+    const book = normalise(raw, { slug, character, spec })
+    const { errors, warnings } = validateBook({ book, refs, bios, strict, band })
     last = { book, errors, warnings }
 
     if (errors.length === 0) return { book, attempts: attempt, warnings }
@@ -262,7 +341,7 @@ export async function authorBook({
     onAttempt?.(attempt, maxAttempts, errors)
     // Carry the rejected book forward so the repair pass edits it rather than
     // starting again and losing a plot that was mostly working.
-    user = `${buildRequest({ slug, premise, character, refs, bios, pages, notes })}
+    user = `${request()}
 
 You previously returned this, which was rejected:
 ${JSON.stringify(book)}

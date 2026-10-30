@@ -38,17 +38,36 @@ export const PAGE_ASPECT = '3:2'
  */
 export const SAFE_WIDTH_FRACTION = 0.68
 
-export const STYLE = [
-  'Warm, hand-crafted storybook illustration for a childrens picture book (ages 4-7).',
-  'Rich but gentle color, soft natural light, expressive and characterful.',
-  'Full-bleed HORIZONTAL composition, wider than it is tall, like the picture across the top of a picture-book page.',
-  // Only the sides are trimmed, and on a narrow phone a LOT of them are.
-  `CRITICAL FRAMING: on a phone the left and right edges of this picture are cropped away, and only the middle ${Math.round(SAFE_WIDTH_FRACTION * 100)}% of its width is reliably visible. Compose the entire beat inside that central band: the characters, their wings, ears, paws and the key action must all sit within the middle of the frame, with generous background to spare on the left and the right. Treat the outer sixth of each side as scenery that will be thrown away. Use the FULL height — the top and bottom are not cropped, so no extra headroom is needed. Nothing important may touch or approach a left or right edge.`,
-  'IMPORTANT: absolutely NO text, letters, words, numbers, titles, or signage lettering anywhere in the image.',
-  'Keep every character EXACTLY on-model with its provided reference image: same species, same fur/feather color and pattern, same eyes, same proportions, same apparent age.',
-].join(' ')
-
 import { framingFor } from './shot-types.mjs'
+import { bandSpec } from '../../lib/bands.ts'
+
+/**
+ * The house style, for one band.
+ *
+ * The age clause used to be the literal string "(ages 4-7)" in a module
+ * constant, which is wrong for three of the four bands: a board book wants one
+ * big bold subject on an uncluttered ground, and a 6-8 book wants depth and
+ * detail that would be noise to a one-year-old. Everything else — the framing
+ * warning, the textless rule, the on-model rule — is the same at every age.
+ */
+export function styleFor(band) {
+  const spec = bandSpec(band)
+  return [
+    `Warm, hand-crafted storybook illustration ${spec.artNote}.`,
+    'Rich but gentle color, soft natural light, expressive and characterful.',
+    'Full-bleed HORIZONTAL composition, wider than it is tall, like the picture across the top of a picture-book page.',
+    // Only the sides are trimmed, and on a narrow phone a LOT of them are.
+    `CRITICAL FRAMING: on a phone the left and right edges of this picture are cropped away, and only the middle ${Math.round(SAFE_WIDTH_FRACTION * 100)}% of its width is reliably visible. Compose the entire beat inside that central band: the characters, their wings, ears, paws and the key action must all sit within the middle of the frame, with generous background to spare on the left and the right. Treat the outer sixth of each side as scenery that will be thrown away. Use the FULL height — the top and bottom are not cropped, so no extra headroom is needed. Nothing important may touch or approach a left or right edge.`,
+    'IMPORTANT: absolutely NO text, letters, words, numbers, titles, or signage lettering anywhere in the image.',
+    'Keep every character EXACTLY on-model with its provided reference image: same species, same fur/feather color and pattern, same eyes, same proportions, same apparent age.',
+  ].join(' ')
+}
+
+/**
+ * The 4-6 style, kept as a constant because new-character.mjs builds a reference
+ * sheet prompt from it by stripping the horizontal-composition clause.
+ */
+export const STYLE = styleFor('young')
 
 const ORDINALS = ['FIRST', 'SECOND', 'THIRD', 'FOURTH', 'FIFTH']
 
@@ -72,12 +91,13 @@ function castSentence(cast, bios) {
 /**
  * @param {object} manifest  a page manifest (flattened, see manifestsOf)
  * @param {Record<string,string>} bios
+ * @param {string} [band]    the book's band, which sets the age clause in STYLE
  */
-export function compilePrompt(manifest, bios = {}) {
+export function compilePrompt(manifest, bios = {}, band = 'young') {
   const m = manifest
   const framing = framingFor(m.shotType)
   return [
-    STYLE,
+    styleFor(band),
     castSentence(m.charactersPresent, bios),
     `Scene: ${m.action}.`,
     `Setting: ${m.location}, ${m.timeOfDay}.`,

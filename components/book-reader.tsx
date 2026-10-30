@@ -3,11 +3,19 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { bookCover, describePage, type Book } from "@/books/types"
+import { bookCoverArt, describePage, type Book } from "@/books/types"
 import { isResumable, readProgress, recordProgress } from "@/lib/progress"
 import { segmentsOf, useReadAloud, type Segment } from "@/lib/read-aloud"
 import { useNarration } from "@/lib/narration"
-import { stories, type Story } from "@/lib/catalog"
+import {
+  mainShelf,
+  newShelf,
+  nextInSeries,
+  seriesById,
+  seriesPosition,
+  storyByReaderSlug,
+  type Story,
+} from "@/lib/catalog"
 import { X, ChevronLeft, ChevronRight, RotateCcw, Volume2, VolumeX } from "lucide-react"
 
 // The preferred phone size, and the floor it will shrink to. A page that has to
@@ -195,6 +203,8 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
 
   const stage = index === COVER ? "cover" : index >= total ? "end" : "page"
   const page = stage === "page" ? book.pages[index] : null
+  // Which cover to show, and whether its title is already painted into the art.
+  const cover = useMemo(() => bookCoverArt(book), [book])
 
   const { size, setBox, probeRef } = useBookTextSize(book.pages)
 
@@ -368,7 +378,7 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
               className="absolute inset-0 z-30 h-full w-full cursor-pointer"
             />
             <Image
-              src={`/${bookCover(book)}`}
+              src={`/${cover.src}`}
               alt={`Cover of ${book.title}`}
               fill
               priority
@@ -377,10 +387,18 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
             />
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black via-black/30 to-black/50" />
             <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center px-8 pb-16 text-center">
-              <h1 className="font-serif text-4xl font-medium leading-tight text-white text-shadow-cinema">
-                {book.title}
-              </h1>
-              <p className="mt-3 text-sm italic text-white/70">{book.subtitle}</p>
+              {/* The seven original covers have the title and tagline PAINTED
+                  into the artwork, and this rendered them again on top — so every
+                  cover showed its title twice and its subtitle twice. Textless
+                  per-book covers need the HTML; painted ones must not have it. */}
+              {!cover.paintedTitle && (
+                <>
+                  <h1 className="font-serif text-4xl font-medium leading-tight text-white text-shadow-cinema">
+                    {book.title}
+                  </h1>
+                  <p className="mt-3 text-sm italic text-white/70">{book.subtitle}</p>
+                </>
+              )}
               <button
                 onClick={() => setIndex(resumeAt ?? 0)}
                 className="pointer-events-auto relative z-40 mt-8 rounded-full bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground transition-transform active:scale-95"
@@ -531,34 +549,49 @@ function EndCard({
   onRestart: () => void
 }) {
   const next = useMemo(() => nextBookAfter(slug), [slug])
+  // "Book 2 of 3" under The End, so finishing one book tells a child there are
+  // more of these — the thing a series is for.
+  const place = useMemo(() => {
+    const story = storyByReaderSlug(slug)
+    return story ? seriesPosition(story) : null
+  }, [slug])
 
   return (
     <div className="flex min-h-full flex-col items-center justify-center px-8 py-16 text-center">
       <p className="font-serif text-3xl font-medium text-foreground">The End</p>
       <p className="mt-3 max-w-xs text-sm text-muted-foreground">{book.title}</p>
+      {place && (
+        <p className="mt-1 text-xs text-muted-foreground">
+          Book {place.index} of {place.total}
+        </p>
+      )}
 
       {next && (
         <div className="mt-10 w-full max-w-[240px]">
           <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-            Read next
+            {/* Naming the series is the whole point of the handover: "More
+                Lantern Valley" is a reason to carry on, "Read next" is a shrug. */}
+            {next.series ? `More ${next.series}` : "Read next"}
           </p>
           <Link
-            href={`/read/${next.readerSlug}`}
+            href={`/read/${next.story.readerSlug}`}
             className="group block"
-            aria-label={`Read ${next.title}`}
+            aria-label={`Read ${next.story.title}`}
           >
             <div className="relative aspect-[9/16] overflow-hidden rounded-lg ring-1 ring-border transition-all group-hover:ring-primary/60">
               <Image
-                src={next.portrait || next.landscape}
-                alt={next.title}
+                src={next.story.portrait || next.story.landscape}
+                alt={next.story.title}
                 fill
                 sizes="240px"
                 className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             </div>
-            <p className="mt-3 font-serif text-lg leading-tight text-foreground">{next.title}</p>
-            <p className="mt-1 text-xs text-muted-foreground">{next.minutes} min</p>
+            <p className="mt-3 font-serif text-lg leading-tight text-foreground">
+              {next.story.title}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">{next.story.minutes} min</p>
           </Link>
         </div>
       )}
@@ -583,17 +616,36 @@ function EndCard({
 }
 
 /**
- * The next readable book after this one, by catalog order, wrapping around.
+ * What to offer when a book ends.
  *
- * Catalog order rather than "most similar": with seven books, similarity scoring
- * is a dressed-up way of always suggesting the same two. Returns nothing when
- * this is the only book, so the card never offers a child the book they just
- * finished as the next one.
+ * The next book in the SAME SERIES comes first, because that is the one moment a
+ * child is both willing to start another book and already attached to these
+ * characters. Everything else falls back to catalog order, wrapping around —
+ * with eight books, similarity scoring is a dressed-up way of always suggesting
+ * the same two.
+ *
+ * Two things this must not do. It must not offer the book just finished, which is
+ * why it returns nothing rather than wrapping onto itself. And it must not cross
+ * shelves: `stories` includes the `shelf: "new"` staging books, so the old
+ * version could hand a child an unreviewed book straight off the end of a
+ * published one — the exact leak `poolForBands` exists to prevent, reintroduced
+ * at the one screen that actively pushes a book at somebody.
  */
-function nextBookAfter(slug: string): Story | undefined {
-  const readable = stories.filter((s) => s.readerSlug)
-  if (readable.length < 2) return undefined
+function nextBookAfter(slug: string): { story: Story; series: string | null } | null {
+  const current = storyByReaderSlug(slug)
+
+  if (current) {
+    const next = nextInSeries(current)
+    if (next?.readerSlug) {
+      return { story: next, series: seriesById(current.seriesId!)?.name ?? null }
+    }
+  }
+
+  // Stay on the shelf this book came from.
+  const shelf = current?.shelf === "new" ? newShelf() : mainShelf()
+  const readable = shelf.filter((s) => s.readerSlug)
+  if (readable.length < 2) return null
   const at = readable.findIndex((s) => s.readerSlug === slug)
-  if (at < 0) return readable[0]
-  return readable[(at + 1) % readable.length]
+  if (at < 0) return { story: readable[0], series: null }
+  return { story: readable[(at + 1) % readable.length], series: null }
 }

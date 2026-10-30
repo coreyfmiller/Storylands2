@@ -80,7 +80,7 @@ async function pool(items, limit, worker) {
   return results
 }
 
-async function generateOne({ slug, manifest, bios, refs, outDir, provider }) {
+async function generateOne({ slug, manifest, bios, refs, outDir, provider, band }) {
   const name = `page-${String(manifest.page).padStart(2, '0')}.png`
   const pngPath = path.join(outDir, name)
   // A page is done if either the render OR the WebP the app serves is present.
@@ -91,7 +91,7 @@ async function generateOne({ slug, manifest, bios, refs, outDir, provider }) {
     return { page: manifest.page, status: 'skip' }
   }
 
-  const prompt = compilePrompt(manifest, bios)
+  const prompt = compilePrompt(manifest, bios, band)
   if (DRY) {
     console.log(`\n--- ${slug} page ${manifest.page} (${manifest.charactersPresent.join('+')}) ---`)
     console.log(prompt)
@@ -172,7 +172,7 @@ async function runBook(slug, provider) {
 
   console.log(`\n${slug}: ${book.title} — ${manifests.length} page(s)`)
   const results = await pool(manifests, DRY ? 1 : CONCURRENCY, (manifest) =>
-    generateOne({ slug, manifest, bios, refs, outDir, provider }),
+    generateOne({ slug, manifest, bios, refs, outDir, provider, band: book.band }),
   )
 
   const ok = results.filter((r) => r.status === 'ok').length

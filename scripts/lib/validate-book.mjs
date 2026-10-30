@@ -11,16 +11,31 @@
 // should never cost a human any attention.
 
 import { SHOT_KEYS, MAX_CONSECUTIVE, minimumDistinctShots } from './shot-types.mjs'
+import { BANDS, bandSpec } from '../../lib/bands.ts'
 
-/** reader-layout.md: target ~35 words, comfortable band 18-45, hard ceiling 50. */
-export const WORD_CEILING = 50
-export const WORD_TARGET_MIN = 18
-export const WORD_TARGET_MAX = 45
-export const PARAGRAPH_CEILING = 3
+/**
+ * The default band, for a book that does not declare one.
+ *
+ * The seven original books and Pixie were all written before bands existed and
+ * are all 4-6 books, so an absent band means `young` rather than an error.
+ */
+export const DEFAULT_BAND = 'young'
 
-/** book-production.md: ~12-16 textless pages. */
-export const MIN_PAGES = 12
-export const MAX_PAGES = 16
+/**
+ * The 4-6 budget, still exported because audit-text.mjs and the tests report
+ * against it by name.
+ *
+ * These are no longer THE rules — they are the `young` band's rules, and every
+ * limit below is read from the band being validated. A baby book is 8 pages of
+ * 6 words and a 6-8 book runs to 72, neither of which these numbers describe.
+ * Use `bandSpec(id).words` for anything new.
+ */
+export const WORD_CEILING = BANDS.young.words.ceiling
+export const WORD_TARGET_MIN = BANDS.young.words.min
+export const WORD_TARGET_MAX = BANDS.young.words.max
+export const PARAGRAPH_CEILING = BANDS.young.paragraphs
+export const MIN_PAGES = BANDS.young.pages.min
+export const MAX_PAGES = BANDS.young.pages.max
 
 const MANIFEST_FIELDS = [
   'charactersPresent',
@@ -121,33 +136,25 @@ function preachyHit(text) {
   return null
 }
 
-/**
- * Minimum pages carrying a spoken line.
- *
- * Dialogue is what a parent performs out loud, and it is most of why a book gets
- * asked for twice. Five of the seven existing books have one or two spoken lines
- * in thirteen pages; Nibs, which has the most, is the best of them.
- *
- * Set at three rather than four on purpose. Oliver vs. The Vacuum has NO
- * dialogue at all and is one of the two best books in the library — it works as
- * a comic narrator monologue, which is a real picture-book form. So this rule is
- * not "dialogue makes a book good".
- *
- * It is here because the strict bar exists to produce SERIES-capable books, and
- * a series needs a cast: a named second character who turns up, says something,
- * and could come back. Oliver's form cannot do that, which is why Oliver is a
- * fine book and is not the model for what comes next.
- */
-const MIN_DIALOGUE_PAGES = 3
-
-/**
- * How even the pages have to be, in strict mode.
- *
- * The reader picks ONE type size per book, set by the longest page, so an uneven
- * book renders small throughout. Nibs spans 27 words and reads at 24px where it
- * could read at 34.
- */
-const STRICT_SPREAD = 12
+// The dialogue minimum and the strict spread limit used to live here as two
+// module constants. They are per-band now — `requires.dialoguePages` and
+// `spread` in lib/bands.ts — because six spoken pages is right for a 6-8 book
+// and absurd for a board book, and a 12-word spread is tight across 35-word
+// pages and twice the entire budget across 6-word ones.
+//
+// Two notes from those constants worth keeping, since they explain the numbers:
+//
+// Dialogue was set at three for the young band rather than four because Oliver
+// vs. The Vacuum has NO dialogue and is one of the two best books in the
+// library — it works as a comic narrator monologue, which is a real
+// picture-book form. The rule is not "dialogue makes a book good". It is that
+// the strict bar exists to produce SERIES-capable books, and a series needs a
+// cast: a named second character who turns up, says something, and could come
+// back. Oliver's form cannot do that.
+//
+// The spread limit exists because the reader picks ONE type size per book, set
+// by its longest page, so an uneven book renders small throughout. Nibs spans
+// 27 words and reads at 24px where it could read at 34.
 
 export function wordCount(text) {
   return String(text).trim().split(/\s+/).filter(Boolean).length
@@ -182,11 +189,18 @@ export function paragraphCount(text) {
  *   New books are strict. The originals stay loose so they keep loading, and
  *   their shortfalls show up as warnings instead.
  */
-export function validateBook({ book, refs = {}, bios = {}, strict = false }) {
+export function validateBook({ book, refs = {}, bios = {}, strict = false, band }) {
   const errors = []
   const warnings = []
   /** In strict mode a shortfall blocks; otherwise it is advice. */
   const fail = (message) => (strict ? errors : warnings).push(message)
+
+  // Which form this book is being held to. An explicit `band` argument wins so a
+  // caller can check a book against a band it does not yet declare; otherwise the
+  // book's own band; otherwise 4-6, which is what every book written before
+  // bands existed actually is.
+  const spec = bandSpec(band ?? book?.band ?? DEFAULT_BAND)
+  const { words: W, pages: P, requires: R } = spec
 
   for (const field of ['id', 'title', 'subtitle', 'character', 'ages']) {
     if (!book?.[field] || typeof book[field] !== 'string') {
@@ -224,8 +238,10 @@ export function validateBook({ book, refs = {}, bios = {}, strict = false }) {
   if (pages.length === 0) {
     return { errors: [...errors, 'book has no pages'], warnings, stats: {} }
   }
-  if (pages.length < MIN_PAGES || pages.length > MAX_PAGES) {
-    errors.push(`${pages.length} pages; a Storylands book is ${MIN_PAGES}-${MAX_PAGES}`)
+  if (pages.length < P.min || pages.length > P.max) {
+    errors.push(
+      `${pages.length} pages; a ${spec.label} book (${spec.agesLabel}) is ${P.min}-${P.max}`,
+    )
   }
 
   // Page numbers must be 1..n with no gaps: pageArt() derives the filename from
@@ -247,15 +263,17 @@ export function validateBook({ book, refs = {}, bios = {}, strict = false }) {
     const para = paragraphCount(p.text)
     words.push(w)
 
-    if (w > WORD_CEILING) {
-      errors.push(`${where}: ${w} words, ceiling is ${WORD_CEILING} — split it into two pages`)
-    } else if (w > WORD_TARGET_MAX) {
-      warnings.push(`${where}: ${w} words, above the comfortable band of ${WORD_TARGET_MAX}`)
-    } else if (w < WORD_TARGET_MIN) {
-      warnings.push(`${where}: ${w} words, below the comfortable band of ${WORD_TARGET_MIN}`)
+    if (w > W.ceiling) {
+      errors.push(
+        `${where}: ${w} words, ceiling for ${spec.agesLabel} is ${W.ceiling} — split it into two pages`,
+      )
+    } else if (w > W.max) {
+      warnings.push(`${where}: ${w} words, above the comfortable band of ${W.max} for ${spec.agesLabel}`)
+    } else if (w < W.min) {
+      warnings.push(`${where}: ${w} words, below the comfortable band of ${W.min} for ${spec.agesLabel}`)
     }
-    if (para > PARAGRAPH_CEILING) {
-      errors.push(`${where}: ${para} paragraphs, ceiling is ${PARAGRAPH_CEILING}`)
+    if (para > spec.paragraphs) {
+      errors.push(`${where}: ${para} paragraphs, ceiling for ${spec.agesLabel} is ${spec.paragraphs}`)
     }
     // Two speakers sharing one paragraph. A parent reading aloud has no cue
     // that the voice changed, and a child following the words sees one person
@@ -270,7 +288,7 @@ export function validateBook({ book, refs = {}, bios = {}, strict = false }) {
       }
     }
 
-    const preachy = preachyHit(p.text)
+    const preachy = R.noStatedMoral ? preachyHit(p.text) : null
     if (preachy) {
       const message = `${where}: tells the reader the point instead of showing it — "${preachy}"`
       // A warning on the seven books that predate this check, an error for
@@ -367,30 +385,69 @@ export function validateBook({ book, refs = {}, bios = {}, strict = false }) {
         `${pages.length - haveShots} page(s) have no shotType while others do — either all or none`,
       )
     }
+    // An unknown key is always an error: framingFor() returns empty for one, so
+    // the page silently loses its framing instruction whatever the band.
     for (const [i, shot] of shots.entries()) {
       if (shot && !SHOT_KEYS.includes(shot)) {
         errors.push(`page ${i + 1}: unknown shotType "${shot}". One of: ${SHOT_KEYS.join(', ')}`)
       }
     }
-    let run = 1
-    for (let i = 1; i < shots.length; i++) {
-      if (shots[i] && shots[i] === shots[i - 1]) {
-        run += 1
-        if (run > MAX_CONSECUTIVE) {
-          errors.push(
-            `pages ${i + 2 - run}-${i + 1}: ${run} consecutive "${shots[i]}" shots; at most ${MAX_CONSECUTIVE}`,
-          )
+    // Variety is a band rule. A board book is deliberately repetitive — the same
+    // big close-up of the same subject is the form, not a flat arc — so neither
+    // the consecutive-run limit nor the distinct minimum applies below toddler.
+    if (R.shotVariety) {
+      let run = 1
+      for (let i = 1; i < shots.length; i++) {
+        if (shots[i] && shots[i] === shots[i - 1]) {
+          run += 1
+          if (run > MAX_CONSECUTIVE) {
+            errors.push(
+              `pages ${i + 2 - run}-${i + 1}: ${run} consecutive "${shots[i]}" shots; at most ${MAX_CONSECUTIVE}`,
+            )
+            run = 1
+          }
+        } else {
           run = 1
         }
-      } else {
-        run = 1
+      }
+      const distinct = new Set(shots.filter(Boolean)).size
+      const needed = minimumDistinctShots(pages.length)
+      if (distinct < needed) {
+        errors.push(
+          `only ${distinct} distinct shot types across ${pages.length} pages; use at least ${needed}`,
+        )
       }
     }
-    const distinct = new Set(shots.filter(Boolean)).size
-    const needed = minimumDistinctShots(pages.length)
-    if (distinct < needed) {
-      errors.push(
-        `only ${distinct} distinct shot types across ${pages.length} pages; use at least ${needed}`,
+  }
+
+  // ---- the refrain, on the bands that live or die by it -------------------
+  //
+  // Below four, a line repeated word-for-word is the single most load-bearing
+  // feature of the form: repetition is how a child who cannot read takes part,
+  // and it is why a two-year-old asks for the same book nightly. Note this is
+  // the exact inverse of the opener rule below, which treats repetition as a
+  // tic — so it has to be a band rule rather than a global one, or the two
+  // checks would contradict each other.
+  if (R.refrain) {
+    const lines = new Map()
+    for (const p of pages) {
+      // Per page, not per occurrence: a refrain twice on one page is emphasis,
+      // not a refrain. It has to come back after a page turn.
+      const seen = new Set()
+      for (const raw of String(p.text ?? '').split(/(?<=[.!?])\s+|\n+/)) {
+        const line = raw.trim().toLowerCase().replace(/\s+/g, ' ')
+        // Short interjections repeat by accident; a refrain is a real line.
+        if (wordCount(line) < 3 || seen.has(line)) continue
+        seen.add(line)
+        lines.set(line, (lines.get(line) ?? 0) + 1)
+      }
+    }
+    const best = [...lines.entries()].sort((a, b) => b[1] - a[1])[0]
+    const MIN_REFRAIN_PAGES = 3
+    if (!best || best[1] < MIN_REFRAIN_PAGES) {
+      fail(
+        `no line repeats word-for-word across at least ${MIN_REFRAIN_PAGES} pages; a ${spec.label} book needs a refrain the child can join in with` +
+          (best ? ` (the most repeated line appears on ${best[1]})` : ''),
       )
     }
   }
@@ -426,9 +483,14 @@ export function validateBook({ book, refs = {}, bios = {}, strict = false }) {
       .toLowerCase()
     if (first) openers[first] = (openers[first] ?? 0) + 1
   }
-  for (const [word, n] of Object.entries(openers)) {
-    if (n > OPENER_LIMIT) {
-      fail(`${n} pages open with "${word}"; vary the sentence openings`)
+  // Skipped on the refrain bands, which would otherwise be penalised for the
+  // thing they are required to do: a refrain used as a page opener is four pages
+  // starting with the same word, and that is correct for a two-year-old.
+  if (!R.refrain) {
+    for (const [word, n] of Object.entries(openers)) {
+      if (n > OPENER_LIMIT) {
+        fail(`${n} pages open with "${word}"; vary the sentence openings`)
+      }
     }
   }
 
@@ -445,62 +507,76 @@ export function validateBook({ book, refs = {}, bios = {}, strict = false }) {
       pages.filter((p) => (p.manifest?.charactersPresent ?? []).includes(c)).length
 
     const present = supportingLeads.filter((c) => onPages(c) > 0)
-    if (present.length === 0) {
-      errors.push(
-        'no second character with reference art appears; the protagonist is alone for the whole book',
-      )
-    }
-    for (const c of present) {
-      const n = onPages(c)
-      if (n === pages.length) {
+
+    // A second character is required for 4-6 and up, where the spine turns on a
+    // friend arriving. A board book is a baby and one familiar face; adding a
+    // cast to it would be the wrong note, so the rule is off below toddler.
+    if (R.secondCharacter) {
+      if (present.length === 0) {
         errors.push(
-          `"${c}" is on every page, so they can never arrive — the spine turns on a friend arriving to ask the question`,
+          'no second character with reference art appears; the protagonist is alone for the whole book',
         )
       }
-      if (n < 3) {
-        errors.push(
-          `"${c}" appears on only ${n} page(s); a second character needs enough room to matter`,
-        )
+      for (const c of present) {
+        const n = onPages(c)
+        if (n === pages.length) {
+          errors.push(
+            `"${c}" is on every page, so they can never arrive — the spine turns on a friend arriving to ask the question`,
+          )
+        }
+        if (n < 3) {
+          errors.push(
+            `"${c}" appears on only ${n} page(s); a second character needs enough room to matter`,
+          )
+        }
       }
     }
 
-    // Dialogue, counted by pages that contain a spoken line.
+    // Dialogue, counted by pages that contain a spoken line. The minimum is the
+    // band's: six pages for 6-8 where dialogue carries the plot, three for 4-6,
+    // two for a toddler, and none at all for a baby who is being spoken TO.
     const spoken = (p) => /[\u201c"][^\u201d"]{3,}[\u201d"]/.test(p.text)
     const speaking = pages.filter(spoken).length
-    if (speaking < MIN_DIALOGUE_PAGES) {
+    if (R.dialoguePages > 0 && speaking < R.dialoguePages) {
       errors.push(
-        `only ${speaking} page(s) carry a spoken line; at least ${MIN_DIALOGUE_PAGES} should — a series needs a cast that talks`,
+        `only ${speaking} page(s) carry a spoken line; a ${spec.label} book needs at least ${R.dialoguePages}`,
       )
     }
 
     // The second character has to actually say something on a page they are on.
     // Present-but-silent is how the existing books ended up with a glow-moth
     // instead of a friend.
-    for (const c of present) {
-      const theirPages = pages.filter((p) => (p.manifest?.charactersPresent ?? []).includes(c))
-      if (!theirPages.some(spoken)) {
-        errors.push(
-          `"${c}" never speaks on any page they appear on; a silent companion cannot ask the question the spine turns on`,
-        )
+    if (R.secondCharacter && R.dialoguePages > 0) {
+      for (const c of present) {
+        const theirPages = pages.filter((p) => (p.manifest?.charactersPresent ?? []).includes(c))
+        if (!theirPages.some(spoken)) {
+          errors.push(
+            `"${c}" never speaks on any page they appear on; a silent companion cannot ask the question the spine turns on`,
+          )
+        }
       }
     }
   }
 
-  const beats = pages.map((p) => String(p.manifest?.emotionalBeat ?? '').toLowerCase().trim())
-  const distinctBeats = new Set(beats.filter(Boolean)).size
-  if (beats.length >= 12 && distinctBeats < Math.ceil(beats.length * 0.6)) {
-    warnings.push(
-      `only ${distinctBeats} distinct emotional beats across ${beats.length} pages; the arc is flat`,
-    )
-  }
+  // Both of these measure whether a STORY moves, so they only apply to a band
+  // that has one. They were also gated on a literal `>= 12` pages, which silently
+  // skipped itself on any book shorter than the 4-6 form — so an 8-page book
+  // escaped them by being short rather than by being a different kind of thing.
+  if (R.plot) {
+    const beats = pages.map((p) => String(p.manifest?.emotionalBeat ?? '').toLowerCase().trim())
+    const distinctBeats = new Set(beats.filter(Boolean)).size
+    if (distinctBeats < Math.ceil(beats.length * 0.6)) {
+      warnings.push(
+        `only ${distinctBeats} distinct emotional beats across ${beats.length} pages; the arc is flat`,
+      )
+    }
 
-  const locations = new Set(
-    pages.map((p) => String(p.manifest?.location ?? '').toLowerCase().trim()).filter(Boolean),
-  )
-  if (pages.length >= 12 && locations.size < 3) {
-    warnings.push(
-      `only ${locations.size} distinct location(s); the book never changes scene`,
+    const locations = new Set(
+      pages.map((p) => String(p.manifest?.location ?? '').toLowerCase().trim()).filter(Boolean),
     )
+    if (locations.size < 3) {
+      warnings.push(`only ${locations.size} distinct location(s); the book never changes scene`)
+    }
   }
 
   // Uneven pages now cost the whole book, not just one page.
@@ -510,7 +586,10 @@ export function validateBook({ book, refs = {}, bios = {}, strict = false }) {
   // at 24px on a phone while its shortest pages would carry 34. Twenty is tight
   // on purpose — this is the warning that protects how the book actually reads.
   const spread = words.length ? Math.max(...words) - Math.min(...words) : 0
-  const spreadLimit = strict ? STRICT_SPREAD : 20
+  // The band's limit in strict mode, and a looser one otherwise. Per band
+  // because the proportional cost differs enormously: a 12-word spread is
+  // nothing across 55-word pages and is twice the whole target for a baby book.
+  const spreadLimit = strict ? spec.spread : spec.spread + 8
   if (spread > spreadLimit) {
     const message =
       `word counts span ${spread} (${Math.min(...words)}-${Math.max(...words)}); the longest page sets ` +
@@ -523,11 +602,17 @@ export function validateBook({ book, refs = {}, bios = {}, strict = false }) {
     errors,
     warnings,
     stats: {
+      band: spec.id,
+      bandLabel: spec.label,
+      ages: spec.agesLabel,
       pages: pages.length,
       minWords: words.length ? Math.min(...words) : 0,
       maxWords: words.length ? Math.max(...words) : 0,
       avgWords: words.length ? Math.round(words.reduce((a, b) => a + b, 0) / words.length) : 0,
       spread,
+      // The band's own budget, so a reporter doesn't have to re-import the spec
+      // to say what the numbers should have been.
+      budget: { words: W, pages: P, spread: spec.spread },
     },
   }
 }

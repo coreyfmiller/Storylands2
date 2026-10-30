@@ -6,8 +6,19 @@
 import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
 import { books, bookSlugs, bookBySlug } from '../../books/index.ts'
-import { bookCover, describePage, pageArt, PAGE_EXT } from '../../books/types.ts'
-import { stories, storyByReaderSlug, thumbOf } from '../catalog.ts'
+import { bookCoverArt, describePage, pageArt, PAGE_EXT } from '../../books/types.ts'
+import {
+  mainShelf,
+  newShelf,
+  nextInSeries,
+  series,
+  seriesById,
+  seriesPosition,
+  stories,
+  storiesInSeries,
+  storyByReaderSlug,
+  thumbOf,
+} from '../catalog.ts'
 
 describe('the book registry', () => {
   test('every slug resolves to a book', () => {
@@ -98,9 +109,108 @@ describe('the catalog agrees with the books on disk', () => {
     assert.equal(new Set(ids).size, ids.length)
   })
 
-  test('cover art for a book matches its character', () => {
+  test('a book with no cover of its own falls back to its character portrait', () => {
     for (const book of Object.values(books)) {
-      assert.equal(bookCover(book), `characters/${book.character}.webp`)
+      if (book.cover) continue
+      const art = bookCoverArt(book)
+      assert.equal(art.src, `characters/${book.character}.webp`)
+      // The character portraits have the title painted into the artwork, so the
+      // reader must NOT render it again on top. This flag is what stopped every
+      // cover showing its title and subtitle twice.
+      assert.equal(art.paintedTitle, true)
+    }
+  })
+
+  test("a book's own cover is preferred, and is textless", () => {
+    const [first] = Object.values(books)
+    const art = bookCoverArt({ ...first, cover: 'books/x/cover.webp' })
+    assert.equal(art.src, 'books/x/cover.webp')
+    assert.equal(art.paintedTitle, false)
+  })
+})
+
+describe('series', () => {
+  test('every series has at least two readable books', () => {
+    // A series of one is not a series. The catalog used to claim Juniper had
+    // three books and Grey Point five, with one entry each and none openable.
+    for (const s of series) {
+      assert.ok(s.count >= 2, `series "${s.id}" has ${s.count} book(s)`)
+      assert.equal(storiesInSeries(s.id).length, s.count, `"${s.id}" count disagrees with members`)
+    }
+  })
+
+  test('every story in a series points at a real series', () => {
+    for (const story of stories) {
+      if (!story.seriesId) continue
+      assert.ok(
+        seriesById(story.seriesId),
+        `"${story.id}" is in series "${story.seriesId}", which does not exist`,
+      )
+    }
+  })
+
+  test('reading order is stated and unique within a series', () => {
+    for (const s of series) {
+      const run = storiesInSeries(s.id)
+      const orders = run.map((b) => b.seriesOrder)
+      for (const [i, o] of orders.entries()) {
+        assert.equal(typeof o, 'number', `"${run[i].id}" has no seriesOrder`)
+      }
+      assert.equal(new Set(orders).size, orders.length, `"${s.id}" has duplicate positions`)
+    }
+  })
+
+  test('storiesInSeries returns reading order, not catalog order', () => {
+    for (const s of series) {
+      const orders = storiesInSeries(s.id).map((b) => b.seriesOrder as number)
+      const sorted = [...orders].sort((a, b) => a - b)
+      assert.deepEqual(orders, sorted)
+    }
+  })
+
+  test('nextInSeries walks forward and stops at the end', () => {
+    for (const s of series) {
+      const run = storiesInSeries(s.id)
+      for (let i = 0; i < run.length - 1; i++) {
+        assert.equal(nextInSeries(run[i])?.id, run[i + 1].id)
+      }
+      // The last book must offer nothing rather than wrap onto book one, which
+      // would hand a child a book they have already read as "what's next".
+      assert.equal(nextInSeries(run[run.length - 1]), null)
+    }
+  })
+
+  test('a standalone book has no next and no position', () => {
+    const standalone = stories.find((s) => !s.seriesId)
+    assert.ok(standalone, 'expected at least one standalone book')
+    assert.equal(nextInSeries(standalone!), null)
+    assert.equal(seriesPosition(standalone!), null)
+  })
+
+  test('seriesPosition counts from one', () => {
+    for (const s of series) {
+      const run = storiesInSeries(s.id)
+      assert.deepEqual(seriesPosition(run[0]), { index: 1, total: run.length })
+    }
+  })
+})
+
+describe('the staging shelf stays off the main shelf', () => {
+  test('the two shelves are disjoint and together are everything', () => {
+    const main = new Set(mainShelf().map((s) => s.id))
+    const staging = new Set(newShelf().map((s) => s.id))
+    for (const id of staging) {
+      assert.ok(!main.has(id), `"${id}" is on both shelves`)
+    }
+    assert.equal(main.size + staging.size, stories.length)
+  })
+
+  test('no main-shelf book is in a series with a staging book', () => {
+    // Otherwise "next in series" would walk a child straight off a published
+    // book onto an unreviewed one, which is the leak poolForBands exists to stop.
+    for (const story of mainShelf()) {
+      const next = nextInSeries(story)
+      if (next) assert.notEqual(next.shelf, 'new', `"${story.id}" leads to staging book "${next.id}"`)
     }
   })
 })

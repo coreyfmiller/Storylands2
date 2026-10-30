@@ -12,6 +12,8 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { ROOT } from './book-source.mjs'
+import { bandSpec } from '../../lib/bands.ts'
+import { DEFAULT_BAND } from './validate-book.mjs'
 
 /** A short identifier usable as a JS import binding. */
 function importName(slug) {
@@ -66,6 +68,19 @@ function fieldOf(entryText, key) {
 }
 
 /**
+ * The value inside a quoted literal read by `fieldOf`, or null.
+ *
+ * `fieldOf` returns value SOURCE, so a string field comes back as `"pip"` with
+ * the quotes attached. Re-emitting that through JSON.stringify would produce
+ * `"\"pip\""`, which is a quietly broken catalog entry rather than a crash.
+ */
+function stripQuotes(source) {
+  if (!source) return null
+  const m = source.match(/^["'](.*)["']$/)
+  return m ? m[1] : source
+}
+
+/**
  * Add or update the book's catalog entry.
  *
  * `readerSlug` is what makes "Begin Story" open the real reader rather than the
@@ -116,6 +131,22 @@ export async function registerInCatalog({ slug, book, story, shelf }) {
   const inherit = (key, fallback) => (sibling && fieldOf(sibling.text, key)) || fallback
   const id = story?.id ?? slug
 
+  // The band comes from the BOOK, and `targetAge` from the band's own top of
+  // range. Both used to be inherited from whichever entry happened to share the
+  // character, defaulting to "young" and 5 — so a board book registered beside
+  // an existing 4-6 book would have been filed on the 4-6 shelf and shown to the
+  // wrong child.
+  const spec = bandSpec(book.band ?? DEFAULT_BAND)
+
+  // Series membership is stated by the book first, and only inherited from a
+  // sibling when the book says nothing. Inheritance alone could not express
+  // "this is book one of a new series" or put two different characters in the
+  // same series, which is what a shared world needs.
+  const seriesId = book.seriesId ?? (sibling ? stripQuotes(fieldOf(sibling.text, 'seriesId')) : null)
+  const seriesFields =
+    (seriesId ? `\n    seriesId: ${JSON.stringify(seriesId)},` : '') +
+    (book.seriesOrder ? `\n    seriesOrder: ${book.seriesOrder},` : '')
+
   const entry = `  {
     id: "${id}",
     title: ${JSON.stringify(book.title)},
@@ -126,15 +157,11 @@ export async function registerInCatalog({ slug, book, story, shelf }) {
     landscape: "/characters/${book.character}.webp",
     portrait: "/characters/${book.character}.webp",
     ages: ${JSON.stringify(book.ages)},
-    targetAge: ${inherit('targetAge', story?.targetAge ?? 5)},
-    band: ${inherit('band', '"young"')},
+    targetAge: ${spec.ages[1]},
+    band: ${JSON.stringify(spec.id)},
     minutes: ${book.minutes},
     genres: ${JSON.stringify(story?.genres ?? ['Heart'])},
-    tags: ${JSON.stringify(story?.tags ?? ['heart', 'quick'])},${
-      sibling && fieldOf(sibling.text, 'seriesId')
-        ? `\n    seriesId: ${fieldOf(sibling.text, 'seriesId')},`
-        : ''
-    }
+    tags: ${JSON.stringify(story?.tags ?? ['heart', 'quick'])},${seriesFields}
     glow: ${inherit('glow', '"oklch(0.82 0.12 74)"')},
     tint: ${inherit('tint', '"oklch(0.34 0.05 70)"')},
   },

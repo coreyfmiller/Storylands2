@@ -15,7 +15,12 @@
 //   --character <id>   protagonist; must already have reference art (required)
 //   --premise "..."    the idea to build on (required)
 //   --slug <slug>      book id / reader route (default: derived from the title)
-//   --pages N          12-16 (default 13)
+//   --band <id>        baby | toddler | young | middle  (default: young)
+//                      Decides page count, word budget, and which structural
+//                      rules apply. See lib/bands.ts.
+//   --pages N          override the band's page count, within its own range
+//   --series <id>      series this book belongs to
+//   --order N          reading position within that series, 1-based
 //   --with <id,id>     extra cast members available to the story
 //   --notes "..."      extra direction for the author
 //   --text-provider    openai | gemini | mock  (default: openai)
@@ -33,7 +38,8 @@ import { loadEnv } from './lib/load-env.mjs'
 import { getTextProvider } from './lib/provider.mjs'
 import { authorBook } from './lib/author-book.mjs'
 import { emitBookSource } from './lib/emit-book.mjs'
-import { validateBook } from './lib/validate-book.mjs'
+import { validateBook, DEFAULT_BAND } from './lib/validate-book.mjs'
+import { bandSpec, BAND_ORDER } from '../lib/bands.ts'
 import { registerInIndex, registerInCatalog } from './lib/register-book.mjs'
 import { slugify } from './lib/slugify.mjs'
 import { loadAllBooks, BOOKS_DIR, ASSETS_DIR } from './lib/book-source.mjs'
@@ -47,7 +53,12 @@ const value = (n) => {
 
 const CHARACTER = value('character')
 const PREMISE = value('premise')
-const PAGES = Number(value('pages') ?? 13)
+const BAND = value('band') ?? DEFAULT_BAND
+// Undefined, not 13, so authorBook falls back to the BAND's target page count.
+// Hardcoding 13 here is how a board book would have been given thirteen pages.
+const PAGES = value('pages') ? Number(value('pages')) : undefined
+const SERIES = value('series')
+const ORDER = value('order') ? Number(value('order')) : undefined
 const ATTEMPTS = Number(value('attempts') ?? 3)
 const DRY = flag('dry-run')
 const FORCE = flag('force')
@@ -121,6 +132,12 @@ async function knownCast() {
 async function main() {
   await loadEnv()
 
+  if (!BAND_ORDER.includes(BAND)) {
+    console.error(`Unknown --band "${BAND}". One of: ${BAND_ORDER.join(', ')}`)
+    process.exit(1)
+  }
+  const spec = bandSpec(BAND)
+
   if (!CHARACTER || !PREMISE) {
     console.error('Usage: node scripts/create-book.mjs --character <id> --premise "..."')
     const { refs } = await knownCast()
@@ -172,7 +189,14 @@ async function main() {
   const already = titlesByCharacter[CHARACTER] ?? []
   if (already.length) console.log(`${CHARACTER} already appears in: ${already.join(', ')}`)
   console.log(`Premise: ${PREMISE}`)
-  console.log(`Writing ${PAGES} pages...\n`)
+  const pageCount = PAGES ?? spec.pages.target
+  console.log(
+    `Band: ${spec.label} (${spec.agesLabel}) — ${pageCount} pages, ${spec.words.min}-${spec.words.max} words/page`,
+  )
+  const applies = Object.entries(spec.requires)
+    .filter(([, v]) => v)
+    .map(([k, v]) => (typeof v === 'number' ? `${k}=${v}` : k))
+  console.log(`Rules: ${applies.join(', ') || 'none'}\n`)
 
   const { book, attempts, warnings } = await authorBook({
     provider,
@@ -181,6 +205,7 @@ async function main() {
     character: CHARACTER,
     refs,
     bios,
+    band: BAND,
     pages: PAGES,
     notes: value('notes'),
     maxAttempts: ATTEMPTS,
@@ -199,13 +224,19 @@ async function main() {
   // The slug comes from the title unless pinned, so the route reads properly.
   const slug = value('slug') ?? slugify(book.title)
   book.id = slug
+  // Series membership is stated on the book, not inferred from a sibling entry.
+  // It used to arrive only as a side effect of registerInCatalog copying a
+  // seriesId off whichever book happened to share the character, which meant a
+  // book could not be put in a series deliberately and could never be book one.
+  if (SERIES) book.seriesId = SERIES
+  if (ORDER) book.seriesOrder = ORDER
 
-  const { errors, stats } = validateBook({ book, refs, bios, strict: STRICT })
+  const { errors, stats } = validateBook({ book, refs, bios, strict: STRICT, band: BAND })
   if (errors.length) throw new Error(`post-slug validation failed:\n${errors.join('\n')}`)
 
   console.log(`\n"${book.title}" — ${book.subtitle}`)
   console.log(
-    `  valid after ${attempts} attempt(s): ${stats.pages} pages, ${stats.minWords}-${stats.maxWords} words, avg ${stats.avgWords}, spread ${stats.spread}`,
+    `  valid after ${attempts} attempt(s): ${stats.bandLabel}, ${stats.pages} pages, ${stats.minWords}-${stats.maxWords} words, avg ${stats.avgWords}, spread ${stats.spread}`,
   )
   for (const w of warnings) console.log(`  warn: ${w}`)
   console.log(`  slug: ${slug}  ->  /read/${slug}`)

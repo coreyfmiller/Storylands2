@@ -1,4 +1,16 @@
-export type Band = "young" | "middle" | "older" | "teen"
+import type { BandId } from "./bands"
+
+/**
+ * The age band a story belongs to.
+ *
+ * An alias for `BandId`, whose definition lives in lib/bands.ts alongside the
+ * page counts, word budgets and structural rules for each band. This used to be
+ * its own union, `"young" | "middle" | "older" | "teen"`, declared here with no
+ * connection to anything the production pipeline knew about — so the catalog and
+ * the validator each had their own idea of what ages existed, and only one of
+ * the four values was ever populated.
+ */
+export type Band = BandId
 
 export type Story = {
   id: string
@@ -23,6 +35,17 @@ export type Story = {
   genres: string[]
   tags: string[]
   seriesId?: string
+  /**
+   * Reading position within the series, 1-based.
+   *
+   * Stated rather than derived, because neither array order could supply it:
+   * `registerInCatalog` inserts a new entry at the TOP of `stories` while
+   * `registerInIndex` appends to the bottom of books/index.ts, so the two orders
+   * diverge as books are added and neither is the reading order. Without this
+   * there is no "next in series" to offer, which is the single most useful thing
+   * a series can do for a child who just finished book one.
+   */
+  seriesOrder?: number
   /**
    * Which shelf this book belongs on.
    *
@@ -87,6 +110,7 @@ export const stories: Story[] = [
     genres: ["Magic", "Family"],
     tags: ["magic", "family", "heart", "quick"],
     seriesId: "pip",
+    seriesOrder: 1,
     glow: "oklch(0.82 0.13 68)",
     tint: "oklch(0.32 0.07 265)",
   },
@@ -202,6 +226,7 @@ export const stories: Story[] = [
     genres: ["Magic", "Family"],
     tags: ["magic", "family", "heart"],
     seriesId: "pip",
+    seriesOrder: 2,
     glow: "oklch(0.82 0.13 68)",
     tint: "oklch(0.32 0.07 265)",
   },
@@ -228,8 +253,14 @@ export type Shelf = {
 const seriesDefs: Omit<Series, "count">[] = [
   {
     id: "pip",
-    name: "Pip",
-    tagline: "The little dragon with a late-arriving flame.",
+    // Named for the world, not the character. It was "Pip", tagline "The little
+    // dragon with a late-arriving flame" — and it contained Lumi's book, which
+    // is not about Pip at all. A series named after one character cannot hold a
+    // second character's story, so either the name or the membership had to go.
+    // The shared thing is the place: both books are set in the same lantern-lit
+    // valley, which is also what lets the two of them meet in a later book.
+    name: "Lantern Valley",
+    tagline: "A valley lit by hand, one small light at a time.",
     image: "/characters/pip.webp",
     band: "young",
     glow: "oklch(0.82 0.13 68)",
@@ -257,6 +288,55 @@ export function thumbOf(src: string) {
 
 export function seriesForBands(bands: Band[]) {
   return series.filter((s) => bands.includes(s.band))
+}
+
+export function seriesById(id: string): Series | undefined {
+  return series.find((s) => s.id === id)
+}
+
+/**
+ * The readable books of a series, in reading order.
+ *
+ * Sorted by `seriesOrder`, with anything missing one sorted last by title rather
+ * than dropped — a book with no stated position is a wiring mistake, and hiding
+ * it would make that mistake invisible.
+ *
+ * Only books with a `readerSlug`, because "book 2 of 3" has to mean two books a
+ * child can open. Counting unbuilt entries is how the catalog previously claimed
+ * Juniper had three books and Grey Point five, none of them openable.
+ */
+export function storiesInSeries(id: string): Story[] {
+  return stories
+    .filter((s) => s.seriesId === id && s.readerSlug)
+    .sort((a, b) => {
+      const ao = a.seriesOrder ?? Number.MAX_SAFE_INTEGER
+      const bo = b.seriesOrder ?? Number.MAX_SAFE_INTEGER
+      return ao === bo ? a.title.localeCompare(b.title) : ao - bo
+    })
+}
+
+/**
+ * The next book to offer when this one ends, or null.
+ *
+ * Null for a standalone book, for the last book of a series, and for a series
+ * whose other books are not built yet. The end-of-book card has to be able to
+ * say nothing rather than point at a dead end.
+ */
+export function nextInSeries(story: Story): Story | null {
+  if (!story.seriesId) return null
+  const run = storiesInSeries(story.seriesId)
+  const i = run.findIndex((s) => s.id === story.id)
+  if (i < 0 || i === run.length - 1) return null
+  return run[i + 1]
+}
+
+/** Where this book sits in its series, for a "Book 2 of 3" label. Null if standalone. */
+export function seriesPosition(story: Story): { index: number; total: number } | null {
+  if (!story.seriesId) return null
+  const run = storiesInSeries(story.seriesId)
+  const i = run.findIndex((s) => s.id === story.id)
+  if (i < 0 || run.length < 2) return null
+  return { index: i + 1, total: run.length }
 }
 
 /** The story whose reader lives at /read/<slug>, if one does. */

@@ -1,3 +1,5 @@
+import type { BandId } from '../lib/bands.ts'
+
 // The shared shape of a Storylands picture book.
 //
 // These three types were previously declared independently inside all seven
@@ -65,6 +67,35 @@ export type Book = {
   character: string
   ages: string
   minutes: number
+  /**
+   * Which age band this book was written for, and therefore which rules it is
+   * held to — page count, word budget, and whether it needs a plot, a second
+   * character, dialogue or a refrain. See lib/bands.ts.
+   *
+   * Optional because the seven original books and Pixie predate bands and are
+   * all 4-6 books; absent means `young`. New books declare it.
+   */
+  band?: BandId
+  /**
+   * Which series this book belongs to, and where in it.
+   *
+   * `seriesId` matches an entry in `seriesDefs` in lib/catalog.ts. `seriesOrder`
+   * is the reading position, 1-based. Without the order there is no "next in
+   * series" to offer, and insertion order could not supply it: the catalog
+   * registrar inserts new entries at the TOP of the array while books/index.ts
+   * appends to the bottom, so the two orders diverge as books are added.
+   */
+  seriesId?: string
+  seriesOrder?: number
+  /**
+   * This book's own cover art, relative to /public, e.g.
+   * `books/pixies-enormous-plip/cover.webp`.
+   *
+   * Generated TEXTLESS, so the reader renders the title and subtitle over it.
+   * Absent means fall back to the character portrait, whose title is painted in.
+   * See bookCoverArt.
+   */
+  cover?: string
   pages: BookPage[]
 }
 
@@ -109,9 +140,34 @@ export function pageArt(slug: string, page: number) {
   return `books/${slug}/pages/page-${String(page).padStart(2, '0')}.${PAGE_EXT}`
 }
 
-/** A book's cover art. The character portraits already have the title painted in. */
+/**
+ * A book's cover art, and whether its title is painted into it.
+ *
+ * This used to return `characters/<character>.webp` unconditionally — one cover
+ * per CHARACTER, not per book. That made a series impossible: Pip's second book
+ * would have shown exactly the same cover as his first, so a shelf of three Pip
+ * books would have been the same picture three times. It was the real blocker on
+ * "turn them into series", and it was in the data model rather than the writing.
+ *
+ * Now a book may ship its own cover at `public/books/<id>/cover.webp`, which is
+ * preferred when present. The character portrait is the fallback, so the eight
+ * existing books are untouched.
+ *
+ * `paintedTitle` is the other half of the fix. The seven original covers have
+ * the title and tagline painted INTO the artwork, and the reader also rendered
+ * them as HTML on top — so every cover showed its title twice. A per-book cover
+ * is generated textless, so the HTML title is correct there and wrong on the old
+ * ones. Asking the art which case it is, rather than hardcoding either, is what
+ * lets both kinds coexist while the library is half-migrated.
+ */
+export function bookCoverArt(book: Book): { src: string; paintedTitle: boolean } {
+  if (book.cover) return { src: book.cover, paintedTitle: false }
+  return { src: `characters/${book.character}.${PAGE_EXT}`, paintedTitle: true }
+}
+
+/** @deprecated Use bookCoverArt, which also reports whether the title is painted in. */
 export function bookCover(book: Book) {
-  return `characters/${book.character}.${PAGE_EXT}`
+  return bookCoverArt(book).src
 }
 
 /**

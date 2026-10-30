@@ -9,6 +9,7 @@
 // state and persistence live in components/providers/reader-provider.tsx.
 
 import type { Band } from './catalog'
+import { MIN_BAND_AGE, bandsForReaderAge } from './bands'
 
 export type Reader = {
   id: string
@@ -21,11 +22,16 @@ export type Reader = {
 /**
  * The ages Storylands is for.
  *
- * Four is the floor because the books are written and illustrated for 4+, and
- * nothing below it would be honest. Twelve is a generous ceiling: an older child
- * reading these to a younger one is a real and welcome case.
+ * Zero is the floor now that there is a baby band: a profile for a one-year-old
+ * is a parent reading a board book aloud, which is a real and central case. It
+ * was 2, with a doc comment directly above it claiming "four is the floor" —
+ * neither number matched the other and neither matched the books.
+ *
+ * Twelve stays as a generous ceiling. Nothing is written above the 6-8 band, and
+ * `bandsForAge` resolves an older child to that band rather than to an empty
+ * library, because an older sibling reading these aloud is worth supporting.
  */
-export const MIN_AGE = 2
+export const MIN_AGE = MIN_BAND_AGE
 export const MAX_AGE = 12
 export const NAME_MAX = 24
 
@@ -51,12 +57,13 @@ export function initialOf(reader: Reader) {
 /**
  * Which shelf bands an age can see.
  *
- * Every Storylands book is currently `young`. The band machinery is kept because
- * the catalog type still has it and the engine will eventually produce older
- * books, but it does not pretend: an age maps only to bands that have books.
+ * Delegates to lib/bands.ts, which owns the age ranges. This function used to
+ * return `['young']` for every age from 2 to 12 — one band for an eleven-year
+ * span — because `young` was the only band with books in it. Now that a book can
+ * be written for any of the four bands, the mapping is real.
  */
 export function bandsForAge(age: number): Band[] {
-  return age >= MIN_AGE ? ['young'] : []
+  return bandsForReaderAge(age)
 }
 
 /** The single validator, used by the form's submit guard and the provider. */

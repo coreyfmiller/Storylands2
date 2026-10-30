@@ -1,12 +1,16 @@
 "use client"
 
 import Image from "next/image"
+import Link from "next/link"
 import type { Band } from "@/lib/catalog"
 import { seriesForBands, thumbOf } from "@/lib/catalog"
 
 export function SeriesRow({ bands }: { bands: Band[] }) {
   const items = seriesForBands(bands)
-  if (items.length < 1) return null
+  // `series` already drops anything with fewer than two readable books, so an
+  // empty list here means no series is followable yet. The guard used to be
+  // `< 1`, which contradicted that rule and would have rendered a shelf of one.
+  if (items.length === 0) return null
 
   return (
     <section className="py-5">
@@ -20,8 +24,13 @@ export function SeriesRow({ bands }: { bands: Band[] }) {
       </div>
       <div className="flex snap-x snap-mandatory gap-3.5 overflow-x-auto scrollbar-hide px-4 pb-1 sm:px-6 lg:px-10">
         {items.map((s) => (
-          <article
+          /* A Link, not a bare <article>. These cards looked exactly like the
+             clickable book cards beside them and did nothing at all when pressed
+             — there was no href, no handler, and no page for them to open. */
+          <Link
             key={s.id}
+            href={`/series/${s.id}`}
+            aria-label={`${s.name}, ${s.count} stories`}
             className="group relative w-[85vw] shrink-0 snap-start sm:w-[440px]"
           >
             <div className="relative aspect-[21/10] overflow-hidden rounded-md ring-1 ring-border transition-all duration-500 group-hover:ring-primary/40">
@@ -50,7 +59,7 @@ export function SeriesRow({ bands }: { bands: Band[] }) {
                 </p>
               </div>
             </div>
-          </article>
+          </Link>
         ))}
         <div className="shrink-0" aria-hidden />
       </div>

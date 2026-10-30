@@ -28,6 +28,8 @@ import path from 'node:path'
 import { loadBook, bookSlugs, PUBLIC_DIR } from './lib/book-source.mjs'
 import { segmentsOf, wordsOf } from './lib/segments.mjs'
 import { loadEnv } from './lib/load-env.mjs'
+import { bandSpec } from '../lib/bands.ts'
+import { DEFAULT_BAND } from './lib/validate-book.mjs'
 
 const args = process.argv.slice(2)
 const flag = (n) => args.includes(`--${n}`)
@@ -48,14 +50,21 @@ const VOICE = value('voice') ?? 'coral'
  * How to read it. This is the whole reason for using a directable TTS model
  * rather than the device's voice.
  */
-const INSTRUCTIONS = [
-  'You are reading a picture book aloud to a four-year-old at bedtime.',
-  'Warm, gentle and unhurried, with a smile in your voice.',
-  'Slow down and land the last few words of each page.',
-  'Give dialogue a light touch of character without doing broad voices.',
-  'Let sentence-ending punctuation breathe; a short pause is better than a rushed line.',
-  'Never sound like an announcer, an audiobook trailer, or a news reader.',
-].join(' ')
+function instructionsFor(band) {
+  const spec = bandSpec(band ?? DEFAULT_BAND)
+  return [
+    // The band's own direction. This was the fixed line "reading a picture book
+    // aloud to a four-year-old at bedtime", which is the wrong performance for
+    // three of the four bands: a board book wants every sound word played with
+    // and long pauses to point at things, and a 6-8 book is paced by its
+    // dialogue for a child following the words themselves.
+    `You are ${spec.voiceNote}.`,
+    'Warm, gentle and unhurried, with a smile in your voice.',
+    'Slow down and land the last few words of each page.',
+    'Let sentence-ending punctuation breathe; a short pause is better than a rushed line.',
+    'Never sound like an announcer, an audiobook trailer, or a news reader.',
+  ].join(' ')
+}
 
 const TTS_MODEL = process.env.OPENAI_TTS_MODEL || 'gpt-4o-mini-tts'
 const STT_MODEL = process.env.OPENAI_STT_MODEL || 'whisper-1'
@@ -79,7 +88,7 @@ async function exists(p) {
   }
 }
 
-async function speak(text) {
+async function speak(text, band) {
   const res = await fetch('https://api.openai.com/v1/audio/speech', {
     method: 'POST',
     headers: { Authorization: `Bearer ${key()}`, 'Content-Type': 'application/json' },
@@ -87,7 +96,7 @@ async function speak(text) {
       model: TTS_MODEL,
       voice: VOICE,
       input: text,
-      instructions: INSTRUCTIONS,
+      instructions: instructionsFor(band),
       response_format: 'mp3',
     }),
   })
@@ -212,7 +221,7 @@ async function narrateBook(slug) {
     }
 
     try {
-      const mp3 = await speak(page.text)
+      const mp3 = await speak(page.text, book.band)
       await writeFile(file, mp3)
 
       let sentences = null

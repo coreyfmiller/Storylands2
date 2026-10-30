@@ -120,6 +120,13 @@ export function emitBookSource({ header, book, refs, bios }) {
   out.push(`  character: ${str(book.character)},`)
   out.push(`  ages: ${str(book.ages)},`)
   out.push(`  minutes: ${book.minutes},`)
+  // The band decides which rules this book is validated against, so it has to
+  // survive the round-trip to disk. Omitted when absent rather than defaulted
+  // here, so `band` means "declared" and the fallback lives in one place.
+  if (book.band) out.push(`  band: ${str(book.band)},`)
+  if (book.seriesId) out.push(`  seriesId: ${str(book.seriesId)},`)
+  if (book.seriesOrder) out.push(`  seriesOrder: ${book.seriesOrder},`)
+  if (book.cover) out.push(`  cover: ${str(book.cover)},`)
   out.push('  pages: [')
 
   for (const p of book.pages) {
