@@ -18,7 +18,7 @@
 //   --pages N          12-16 (default 13)
 //   --with <id,id>     extra cast members available to the story
 //   --notes "..."      extra direction for the author
-//   --provider <p>     gemini | openai | mock  (default: whichever key is set)
+//   --text-provider    openai | gemini | mock  (default: openai)
 //   --attempts N       validation repair passes (default 3)
 //   --dry-run          author and validate, write nothing
 //   --force            overwrite an existing book with this slug
@@ -30,7 +30,7 @@
 import { writeFile, mkdir, access, readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { loadEnv } from './lib/load-env.mjs'
-import { getProvider } from './lib/provider.mjs'
+import { getTextProvider } from './lib/provider.mjs'
 import { authorBook } from './lib/author-book.mjs'
 import { emitBookSource } from './lib/emit-book.mjs'
 import { validateBook } from './lib/validate-book.mjs'
@@ -139,8 +139,8 @@ async function main() {
     }
   }
 
-  const provider = getProvider(value('provider'))
-  console.log(`Provider: ${provider.name} (${provider.textModel})`)
+  const provider = getTextProvider(value('text-provider') ?? value('provider'))
+  console.log(`Author: ${provider.name} / ${provider.model}`)
   if (provider.name === 'mock') {
     console.log('NOTE: mock provider — the prose will be placeholder text, not a story.')
   }

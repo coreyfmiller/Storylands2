@@ -19,6 +19,8 @@
 //   --force           regenerate pages that already exist
 //   --dry-run         print the compiled prompts and spend nothing
 //   --concurrency N   pages in flight at once (default 2)
+//   --image-provider  openai | gemini | mock  (default: openai)
+//   --allow-mixed     permit two image models inside one book (don't)
 //
 // Resumable and per-page isolated: a failure on page 7 never stops page 8, and a
 // re-run fills the gaps. Output is public/books/<slug>/pages/page-NN.png, which
@@ -26,10 +28,11 @@
 
 import { writeFile, mkdir, access } from 'node:fs/promises'
 import path from 'node:path'
-import { generateFromReferences, DEFAULT_IMAGE_MODEL } from './lib/openai-image.mjs'
+import { getImageProvider } from './lib/provider.mjs'
 import { loadBook, bookSlugs, manifestsOf, ASSETS_DIR, PUBLIC_DIR } from './lib/book-source.mjs'
 import { compilePrompt } from './lib/compile-prompt.mjs'
 import { validateBook } from './lib/validate-book.mjs'
+import { recordPages, wouldMix } from './lib/art-log.mjs'
 import { loadEnv } from './lib/load-env.mjs'
 
 const args = process.argv.slice(2)
@@ -42,6 +45,7 @@ const value = (name) => {
 const FORCE = flag('force')
 const DRY = flag('dry-run')
 const ALL = flag('all')
+const ALLOW_MIXED = flag('allow-mixed')
 const CONCURRENCY = Math.max(1, Number(value('concurrency') ?? 2))
 const ONLY = value('only')
   ? new Set(
@@ -76,7 +80,7 @@ async function pool(items, limit, worker) {
   return results
 }
 
-async function generateOne({ slug, manifest, bios, refs, outDir }) {
+async function generateOne({ slug, manifest, bios, refs, outDir, provider }) {
   const name = `page-${String(manifest.page).padStart(2, '0')}.png`
   const pngPath = path.join(outDir, name)
   // A page is done if either the render OR the WebP the app serves is present.
@@ -99,7 +103,7 @@ async function generateOne({ slug, manifest, bios, refs, outDir }) {
   const referencePaths = manifest.charactersPresent.map((c) => path.join(ASSETS_DIR, refs[c]))
 
   try {
-    const { b64 } = await generateFromReferences({ prompt, referencePaths, size: '1024x1536' })
+    const { b64 } = await provider.generateImage({ prompt, referencePaths, aspectRatio: '9:16' })
     await writeFile(pngPath, Buffer.from(b64, 'base64'))
     console.log(`  page ${manifest.page}: OK`)
     return { page: manifest.page, status: 'ok' }
@@ -119,7 +123,7 @@ async function generateOne({ slug, manifest, bios, refs, outDir }) {
   }
 }
 
-async function runBook(slug) {
+async function runBook(slug, provider) {
   const { book, refs, bios } = await loadBook(slug)
 
   // Validate before spending anything. A book with a missing CHARACTER_REFS entry
@@ -141,14 +145,44 @@ async function runBook(slug) {
     return { slug, ok: 0, skip: 0, fail: 0 }
   }
 
+  // Mixing two image models inside one book makes the style drift between
+  // pages, which reads worse than the page being replaced. Refuse by default.
+  if (!DRY) {
+    const mix = await wouldMix(slug, {
+      provider: provider.name,
+      model: provider.model,
+      pages: manifests.map((m) => m.page),
+    })
+    if (mix.mixed && !ALLOW_MIXED) {
+      console.error(
+        `\n${slug}: pages here were drawn by ${mix.existing}, and this run would use ${mix.incoming}.`,
+      )
+      console.error(
+        '  Style and character rendering drift between image models, inside one book.\n' +
+          `  Either regenerate the whole book (--force, no --only), or match the original\n` +
+          `  with --image-provider / OPENAI_IMAGE_MODEL, or accept it with --allow-mixed.`,
+      )
+      return { slug, ok: 0, skip: 0, fail: 0, blocked: true }
+    }
+  }
+
   console.log(`\n${slug}: ${book.title} — ${manifests.length} page(s)`)
   const results = await pool(manifests, DRY ? 1 : CONCURRENCY, (manifest) =>
-    generateOne({ slug, manifest, bios, refs, outDir }),
+    generateOne({ slug, manifest, bios, refs, outDir, provider }),
   )
 
   const ok = results.filter((r) => r.status === 'ok').length
   const skip = results.filter((r) => r.status === 'skip').length
   const fail = results.filter((r) => r.status === 'fail')
+
+  if (ok > 0) {
+    await recordPages(slug, {
+      provider: provider.name,
+      model: provider.model,
+      pages: results.filter((r) => r.status === 'ok').map((r) => r.page),
+    })
+  }
+
   console.log(`${slug}: generated ${ok}, skipped ${skip}, failed ${fail.length}`)
   if (fail.length) {
     console.log(`  retry with: --book ${slug} --only ${fail.map((f) => f.page).join(',')}`)
@@ -166,11 +200,14 @@ async function main() {
     process.exit(1)
   }
 
-  if (!DRY) console.log(`Model: ${DEFAULT_IMAGE_MODEL}  concurrency: ${CONCURRENCY}`)
+  const provider = getImageProvider(value('image-provider') ?? value('provider'))
+  if (!DRY) {
+    console.log(`Images: ${provider.name} / ${provider.model}  concurrency: ${CONCURRENCY}`)
+  }
 
   let generated = 0
   for (const slug of slugs) {
-    const r = await runBook(slug)
+    const r = await runBook(slug, provider)
     generated += r.ok
   }
 

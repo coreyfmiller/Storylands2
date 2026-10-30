@@ -17,7 +17,10 @@ import {
   GEMINI_IMAGE_MODEL,
   OPENAI_TEXT_MODEL,
   OPENAI_IMAGE_MODEL,
+  getTextProvider,
+  getImageProvider,
 } from './lib/provider.mjs'
+import { readArtLog } from './lib/art-log.mjs'
 
 await loadEnv()
 
@@ -33,7 +36,17 @@ async function exists(p) {
   }
 }
 
-console.log('CREDENTIALS')
+// What a run would actually use, resolved the same way the scripts resolve it.
+const text = getTextProvider()
+const image = getImageProvider()
+console.log('THIS RUN WOULD USE')
+console.log(`  author  ${text.name} / ${text.model}`)
+console.log(`  images  ${image.name} / ${image.model}`)
+if (text.name === 'mock' || image.name === 'mock') {
+  console.log('  (mock means no key is set — nothing real will be produced)')
+}
+
+console.log('\nCREDENTIALS')
 
 if (process.env.GEMINI_API_KEY) {
   try {
@@ -129,12 +142,16 @@ for (const { slug, book, refs, bios } of books) {
     if (!(await exists(path.join(PUBLIC_DIR, p.art)))) missingArt.push(p.page)
   }
 
+  const art = await readArtLog(slug)
+  const drawnBy = art.model ? `${art.provider}/${art.model}` : 'unrecorded'
+
   const bad = errors.length + missingRefs.length
   if (bad) problems += 1
   console.log(
     `  ${tick(bad === 0)} ${slug.padEnd(22)} ${String(stats.pages).padStart(2)}pp` +
       `  ${String(stats.minWords).padStart(2)}-${String(stats.maxWords).padStart(2)}w` +
       `  art ${book.pages.length - missingArt.length}/${book.pages.length}` +
+      `  ${drawnBy}` +
       (warnings.length ? `  ${warnings.length} warn` : ''),
   )
   for (const e of errors) console.log(`       ERROR ${e}`)

@@ -198,3 +198,43 @@ readable books is left out rather than shown as a shelf of one.
 `moodFilters` is filtered against the catalog for the same reason. It used to
 offer Mystery, Suspense and "Under 30 min" to a four-year-old, all of which
 returned nothing — a filter that tells a child their search is broken.
+
+### One key, and a documented exception to the Gemini standard
+
+**OpenAI is the default for both capabilities.** The art decides this: all 93
+pages in the library were drawn by `gpt-image-2.5-sunburst` through the edits
+endpoint and held on-model across thirteen pages a book, which is evidence on
+disk. Gemini image generation has never produced a single page here. Authoring
+is about 6% of a book's cost — the illustrations are roughly thirty times the
+words — so the words follow the pictures rather than the reverse.
+
+This is a **deliberate exception to the workspace Gemini standard**, which names
+`gemini-flash-latest` as canonical for every project. That standard was written
+for projects where text is the only model call; in Storylands the image model is
+the product. Don't "fix" this back in an audit without reading this paragraph.
+
+The Gemini path is kept and maintained as the fallback for an outage, a price
+change, or another expired key. Two accounts previously meant two things that
+could independently run dry, and both did.
+
+**Capabilities resolve independently.** `getTextProvider()` and
+`getImageProvider()`, each honouring `--text-provider` / `--image-provider` or
+`STORYLANDS_TEXT_PROVIDER` / `STORYLANDS_IMAGE_PROVIDER`. A single choice for
+both was a design mistake: it made "words on Gemini, pictures on OpenAI"
+impossible to express, which is exactly what you want when one account is down.
+
+`node scripts/doctor.mjs` opens by printing what a run would actually use, so
+there is no guessing which models are about to be billed.
+
+### Never mix two image models inside one book
+
+`books/<slug>/art.json` records which provider and model drew each page, written
+by `generate-book.mjs`. Re-rolling three pages of a finished book on a different
+image model makes the style and the character rendering drift *within* the book,
+which reads worse than the page being replaced — and nothing used to record
+enough to notice.
+
+The generator refuses it. A whole-book regeneration is a clean replacement and is
+allowed; a partial one against a different model is blocked with the three real
+options (regenerate everything, match the original model, or `--allow-mixed`).
+The seven existing books are backfilled as `openai/gpt-image-2.5-sunburst`.

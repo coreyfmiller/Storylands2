@@ -8,7 +8,7 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { generateFromReferences, DEFAULT_IMAGE_MODEL } from './lib/openai-image.mjs'
+import { getImageProvider } from './lib/provider.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '..')
@@ -57,7 +57,10 @@ async function main() {
   const nibs = path.join(CHARS, 'nibs.png')
   const tilly = path.join(CHARS, 'Tilly.png')
 
-  console.log(`Model: ${DEFAULT_IMAGE_MODEL}`)
+  const provider = getImageProvider(process.argv.includes('--image-provider')
+    ? process.argv[process.argv.indexOf('--image-provider') + 1]
+    : undefined)
+  console.log(`Images: ${provider.name} / ${provider.model}`)
   const jobs = [
     { name: 'nibs-acorn-1.png', prompt: NIBS_SCENE, refs: [nibs] },
     { name: 'nibs-acorn-2.png', prompt: NIBS_SCENE, refs: [nibs] },
@@ -68,10 +71,10 @@ async function main() {
   for (const job of jobs) {
     process.stdout.write(`Generating ${job.name} ... `)
     try {
-      const { b64 } = await generateFromReferences({
+      const { b64 } = await provider.generateImage({
         prompt: job.prompt,
         referencePaths: job.refs,
-        size: '1024x1536',
+        aspectRatio: '9:16',
       })
       await saveB64(job.name, b64)
       console.log('OK')

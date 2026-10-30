@@ -18,18 +18,53 @@ import path from 'node:path'
 export const PROVIDERS = ['gemini', 'openai', 'mock']
 
 /**
- * Which provider to use.
- * Explicit flag wins, then whichever key is present, then mock.
+ * The default for both capabilities is OpenAI, and the images are the reason.
+ *
+ * All 93 pages in the library were drawn by gpt-image through the edits
+ * endpoint, and each character held on-model across thirteen pages. That is
+ * evidence sitting on disk. Gemini image generation has never produced a single
+ * page for this project. So the art picks the provider, and since authoring is
+ * about 6% of a book's cost, the words follow it rather than the reverse.
+ *
+ * This is a deliberate exception to the workspace Gemini standard, which names
+ * gemini-flash-latest as canonical. That standard was written for projects where
+ * text is the only model call; here the image model IS the product. The Gemini
+ * path below is kept and maintained as the fallback for an outage, a price
+ * change or another expired key — see getTextProvider / getImageProvider.
  */
-export function resolveProvider(requested) {
-  if (requested) {
-    if (!PROVIDERS.includes(requested)) {
-      throw new Error(`Unknown provider "${requested}". One of: ${PROVIDERS.join(', ')}`)
-    }
-    return requested
+const DEFAULT_PROVIDER = 'openai'
+
+function assertKnown(name) {
+  if (!PROVIDERS.includes(name)) {
+    throw new Error(`Unknown provider "${name}". One of: ${PROVIDERS.join(', ')}`)
   }
-  if (process.env.GEMINI_API_KEY) return 'gemini'
-  if (process.env.OPENAI_API_KEY) return 'openai'
+  return name
+}
+
+/**
+ * Resolve one capability's provider.
+ *
+ * Order: an explicit request, then the matching env override, then OpenAI if its
+ * key is set, then Gemini if its key is set, then mock. Capabilities resolve
+ * INDEPENDENTLY — a single choice for both was a design mistake, because it made
+ * "words on Gemini, pictures on OpenAI" impossible to express.
+ *
+ * @param {'text'|'image'} capability
+ * @param {string} [requested]
+ */
+export function resolveProvider(capability, requested) {
+  if (requested) return assertKnown(requested)
+
+  const override =
+    capability === 'text'
+      ? process.env.STORYLANDS_TEXT_PROVIDER
+      : process.env.STORYLANDS_IMAGE_PROVIDER
+  if (override) return assertKnown(override)
+
+  const has = { openai: !!process.env.OPENAI_API_KEY, gemini: !!process.env.GEMINI_API_KEY }
+  if (has[DEFAULT_PROVIDER]) return DEFAULT_PROVIDER
+  if (has.openai) return 'openai'
+  if (has.gemini) return 'gemini'
   return 'mock'
 }
 
@@ -182,11 +217,18 @@ async function openaiJSON({ system, user, schema, maxOutputTokens }) {
   return JSON.parse(text)
 }
 
-async function openaiImage({ prompt, referencePaths }) {
+/**
+ * gpt-image takes a size from a fixed set, not a free aspect ratio. 1024x1536 is
+ * the portrait option and is what drew all 93 existing pages; the reader crops
+ * to 9:16 anyway, which is why page composition is briefed with margin.
+ */
+const OPENAI_SIZES = { '9:16': '1024x1536', '2:3': '1024x1536', '1:1': '1024x1024' }
+
+async function openaiImage({ prompt, referencePaths, aspectRatio = '9:16' }) {
   const form = new FormData()
   form.append('model', OPENAI_IMAGE_MODEL)
   form.append('prompt', prompt)
-  form.append('size', '1024x1536')
+  form.append('size', OPENAI_SIZES[aspectRatio] ?? '1024x1536')
   for (const p of referencePaths) {
     const buf = await readFile(p)
     const ext = path.extname(p).toLowerCase()
@@ -254,32 +296,28 @@ async function mockImage() {
 
 // ---------------------------------------------------------------- dispatch
 
-/** @returns {{ name: string, textModel: string, imageModel: string, generateJSON: Function, generateImage: Function }} */
-export function getProvider(requested) {
-  const name = resolveProvider(requested)
-  if (name === 'gemini') {
-    return {
-      name,
-      textModel: GEMINI_TEXT_MODEL,
-      imageModel: GEMINI_IMAGE_MODEL,
-      generateJSON: geminiJSON,
-      generateImage: geminiImage,
-    }
-  }
-  if (name === 'openai') {
-    return {
-      name,
-      textModel: OPENAI_TEXT_MODEL,
-      imageModel: OPENAI_IMAGE_MODEL,
-      generateJSON: openaiJSON,
-      generateImage: openaiImage,
-    }
-  }
-  return {
-    name: 'mock',
-    textModel: 'mock',
-    imageModel: 'mock',
-    generateJSON: mockJSON,
-    generateImage: mockImage,
-  }
+const TEXT = {
+  gemini: { model: () => GEMINI_TEXT_MODEL, generateJSON: geminiJSON },
+  openai: { model: () => OPENAI_TEXT_MODEL, generateJSON: openaiJSON },
+  mock: { model: () => 'mock', generateJSON: mockJSON },
+}
+
+const IMAGE = {
+  gemini: { model: () => GEMINI_IMAGE_MODEL, generateImage: geminiImage },
+  openai: { model: () => OPENAI_IMAGE_MODEL, generateImage: openaiImage },
+  mock: { model: () => 'mock', generateImage: mockImage },
+}
+
+/** @returns {{ name: string, model: string, generateJSON: Function }} */
+export function getTextProvider(requested) {
+  const name = resolveProvider('text', requested)
+  const impl = TEXT[name]
+  return { name, model: impl.model(), generateJSON: impl.generateJSON }
+}
+
+/** @returns {{ name: string, model: string, generateImage: Function }} */
+export function getImageProvider(requested) {
+  const name = resolveProvider('image', requested)
+  const impl = IMAGE[name]
+  return { name, model: impl.model(), generateImage: impl.generateImage }
 }
