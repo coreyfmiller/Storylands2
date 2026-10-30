@@ -5,7 +5,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { bookCover, describePage, type Book } from "@/books/types"
 import { isResumable, readProgress, recordProgress } from "@/lib/progress"
-import { RATES, segmentsOf, useReadAloud, type Segment } from "@/lib/read-aloud"
+import { segmentsOf, useReadAloud, type Segment } from "@/lib/read-aloud"
 import { useNarration } from "@/lib/narration"
 import { stories, type Story } from "@/lib/catalog"
 import { X, ChevronLeft, ChevronRight, RotateCcw, Volume2, VolumeX } from "lucide-react"
@@ -334,45 +334,28 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
               </div>
             )}
           </div>
+          {/* One control: on or off. A speed dial beside it implied the
+              recording needed adjusting, and its default actually played the
+              narrator 15% slow. The pacing belongs in the recording. */}
           {aloud.supported && (
-            <div className="pointer-events-auto flex items-center gap-1">
-              {/* Speed only appears once read-aloud is on, because it is
-                  meaningless otherwise. Three steps, not a slider: nobody is
-                  tuning a decimal with a toddler on their lap. */}
-              {aloud.on && (
-                <div className="flex items-center overflow-hidden rounded-full bg-black/40 backdrop-blur">
-                  {RATES.map((r) => (
-                    <button
-                      key={r}
-                      onClick={() => aloud.setRate(r)}
-                      aria-pressed={aloud.rate === r}
-                      aria-label={`Read at ${r === 0.7 ? "slow" : r === 0.85 ? "normal" : "quick"} speed`}
-                      className={`min-h-11 px-2.5 text-[11px] font-medium transition-colors ${
-                        aloud.rate === r ? "bg-white/20 text-white" : "text-white/55 hover:text-white"
-                      }`}
-                    >
-                      {r === 0.7 ? "Slow" : r === 0.85 ? "Normal" : "Quick"}
-                    </button>
-                  ))}
-                </div>
-              )}
-              <button
-                onClick={aloud.toggle}
-                aria-pressed={aloud.on}
-                aria-label={
-                  aloud.on
-                    ? "Turn read-aloud off"
-                    : aloud.recorded
-                      ? "Read this book aloud, narrated"
-                      : "Read this book aloud"
-                }
-                className={`grid h-11 w-11 place-items-center rounded-full backdrop-blur transition-colors ${
-                  aloud.on ? "bg-primary text-primary-foreground" : "bg-black/40 text-white/80 hover:text-white"
-                }`}
-              >
-                {aloud.on ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
-              </button>
-            </div>
+            <button
+              onClick={aloud.toggle}
+              aria-pressed={aloud.on}
+              aria-label={
+                aloud.on
+                  ? "Turn read-aloud off"
+                  : aloud.recorded
+                    ? "Read this book aloud, narrated"
+                    : "Read this book aloud"
+              }
+              className={`pointer-events-auto grid h-11 w-11 place-items-center rounded-full backdrop-blur transition-colors ${
+                aloud.on
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-black/40 text-white/80 hover:text-white"
+              }`}
+            >
+              {aloud.on ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+            </button>
           )}
         </div>
 

@@ -18,11 +18,25 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { sentenceAt, type Narration } from "./narration.ts"
 
-const RATE_KEY = "storylands:read-aloud-rate:v1"
 const ON_KEY = "storylands:read-aloud:v1"
 
-export const RATES = [0.7, 0.85, 1] as const
-export type Rate = (typeof RATES)[number]
+/**
+ * Playback speed for the RECORDED narrator: exactly as recorded.
+ *
+ * There used to be a Slow / Normal / Quick control, and it defaulted to 0.85 —
+ * which meant the coral narration played 15% slow on every page. That voice is
+ * already directed to be warm and unhurried and to land the end of each page, so
+ * slowing it further only made it sluggish and dropped its pitch. The pacing
+ * belongs in the recording, not in a speed dial.
+ */
+const RECORDED_RATE = 1
+
+/**
+ * Speed for the device's own voice, which arrives with no direction at all and
+ * reads far too briskly for a four-year-old. This is the one place a slower rate
+ * genuinely helps.
+ */
+const FALLBACK_RATE = 0.85
 
 export type Segment = { text: string; start: number; end: number }
 
@@ -78,11 +92,9 @@ export type ReadAloud = {
   on: boolean
   /** Index of the sentence being spoken, or -1. */
   speaking: number
-  rate: Rate
   /** True when a real narrator is playing rather than the device's voice. */
   recorded: boolean
   toggle: () => void
-  setRate: (r: Rate) => void
 }
 
 /**
@@ -101,7 +113,6 @@ export function useReadAloud(
 ): ReadAloud {
   const [speechSupported, setSpeechSupported] = useState(false)
   const [on, setOn] = useState(false)
-  const [rate, setRateState] = useState<Rate>(0.85)
   const [speaking, setSpeaking] = useState(-1)
 
   const finishedRef = useRef(onFinished)
@@ -116,16 +127,6 @@ export function useReadAloud(
     if (typeof window === "undefined") return
     setSpeechSupported("speechSynthesis" in window)
     setOn(readStored(ON_KEY, (r) => r === "1", false))
-    setRateState(
-      readStored(
-        RATE_KEY,
-        (r) => {
-          const n = Number(r)
-          return (RATES as readonly number[]).includes(n) ? (n as Rate) : null
-        },
-        0.85,
-      ),
-    )
   }, [])
 
   // ---- recorded narrator -------------------------------------------------
@@ -135,7 +136,7 @@ export function useReadAloud(
     if (!on || !clip) return
 
     const audio = new Audio(`/${clip.file}`)
-    audio.playbackRate = rate
+    audio.playbackRate = RECORDED_RATE
     audio.preload = "auto"
     audioRef.current = audio
 
@@ -160,7 +161,7 @@ export function useReadAloud(
       audioRef.current = null
       setSpeaking(-1)
     }
-  }, [on, clip, rate])
+  }, [on, clip])
 
   // ---- fallback: the device's own voice -----------------------------------
   useEffect(() => {
@@ -172,7 +173,7 @@ export function useReadAloud(
     synth.cancel()
 
     const utterance = new SpeechSynthesisUtterance(text)
-    utterance.rate = rate
+    utterance.rate = FALLBACK_RATE
     utterance.pitch = 1.05
     setSpeaking(segments.length > 0 ? 0 : -1)
 
@@ -196,7 +197,7 @@ export function useReadAloud(
       synth.cancel()
       setSpeaking(-1)
     }
-  }, [on, clip, speechSupported, text, rate, segments])
+  }, [on, clip, speechSupported, text, segments])
 
   // Leaving the book mid-sentence must not leave a voice talking over the library.
   useEffect(() => {
@@ -218,19 +219,12 @@ export function useReadAloud(
     })
   }, [])
 
-  const setRate = useCallback((r: Rate) => {
-    setRateState(r)
-    store(RATE_KEY, String(r))
-  }, [])
-
   return {
     // A narrated book offers read-aloud even where speechSynthesis is missing.
     supported: speechSupported || !!clip,
     on,
     speaking,
-    rate,
     recorded: !!clip,
     toggle,
-    setRate,
   }
 }
