@@ -33,19 +33,10 @@ export type Series = {
   name: string
   tagline: string
   image: string
+  /** Derived from `stories`, never stated. See `series`. */
   count: number
   band: Band
   glow: string
-}
-
-export type Profile = {
-  id: string
-  name: string
-  age: number
-  bands: Band[]
-  heroId: string
-  avatar: string
-  color: string
 }
 
 export const stories: Story[] = [
@@ -186,298 +177,6 @@ export const stories: Story[] = [
     tint: "oklch(0.32 0.07 265)",
   },
 
-  // ---------- MIDDLE · approx 8–10 ----------
-  {
-    id: "firefly",
-    title: "The Last Firefly",
-    kicker: "A Storylands Original",
-    hook: "Summer ends tomorrow. Tonight there is still time for one small adventure.",
-    synopsis:
-      "On the final night of summer, Emi finds a single firefly glowing brighter than all the rest — and clearly lost. Helping it home means crossing the whole field in the dark, and the field is far bigger after sunset than it ever is by day.",
-    landscape: "/art/firefly-hero.webp",
-    ages: "Ages 9+",
-    targetAge: 10,
-    band: "middle",
-    minutes: 15,
-    genres: ["Adventure", "Heart"],
-    tags: ["adventure", "heart", "quick", "magic"],
-    glow: "oklch(0.82 0.13 72)",
-    tint: "oklch(0.3 0.08 255)",
-  },
-  {
-    id: "juniper",
-    title: "Juniper's Moonlight Delivery",
-    kicker: "A Storylands Original",
-    hook: "One parcel. One moonlit forest. Several shortcuts that probably aren't shortcuts.",
-    synopsis:
-      "Juniper has one job tonight: deliver a small glowing parcel to the far side of the woods before the moon sets. The main path is long. The shortcuts are tempting. And the forest, it turns out, has opinions about which way she should go.",
-    landscape: "/art/juniper.webp",
-    ages: "Ages 8+",
-    targetAge: 9,
-    band: "middle",
-    minutes: 18,
-    genres: ["Adventure", "Friendship"],
-    tags: ["adventure", "friendship", "magic", "rainy"],
-    seriesId: "juniper",
-    glow: "oklch(0.8 0.09 210)",
-    tint: "oklch(0.3 0.06 250)",
-  },
-  {
-    id: "shed",
-    title: "The Thing Under the Shed",
-    kicker: "A Storylands Original",
-    hook: "Something keeps stealing Nora's strawberries. Tonight she's waiting.",
-    synopsis:
-      "Every morning another strawberry is gone. Nora has a flashlight, a blanket, and a plan to stay awake all night until she catches the thief. What she finds under the shed is stranger — and gentler — than she expected.",
-    landscape: "/art/shed.webp",
-    ages: "Ages 8+",
-    targetAge: 9,
-    band: "middle",
-    minutes: 15,
-    genres: ["Mystery", "Discovery"],
-    tags: ["mystery", "rainy", "strange"],
-    glow: "oklch(0.78 0.09 155)",
-    tint: "oklch(0.28 0.05 180)",
-  },
-  {
-    id: "maple-camp",
-    title: "Maple's Very Bad Camping Idea",
-    kicker: "A Storylands Original",
-    hook: "The backyard is twenty steps from home. At night, it feels considerably farther.",
-    synopsis:
-      "Maple was sure about the plan at noon. A tent, a torch, a whole night of adventure in the backyard. But the dark has a way of stretching twenty steps into twenty miles, and every ordinary sound now needs investigating.",
-    landscape: "/art/maple.webp",
-    ages: "Ages 8+",
-    targetAge: 9,
-    band: "middle",
-    minutes: 15,
-    genres: ["Adventure", "Comedy"],
-    tags: ["adventure", "funny", "rainy"],
-    glow: "oklch(0.78 0.1 230)",
-    tint: "oklch(0.27 0.06 250)",
-  },
-
-  // ---------- OLDER MIDDLE-GRADE · approx 11–13 ----------
-  {
-    id: "lighthouse",
-    title: "The Lighthouse at Grey Point",
-    kicker: "A Storylands Original",
-    hook: "Three friends discover a light flashing from a lighthouse abandoned for thirty years.",
-    synopsis:
-      "Grey Point lighthouse has been dark since before any of them were born. So when the beam sweeps the cliffs one stormy evening, Sam, Priya and Theo have a choice: pretend they never saw it, or find out who — or what — turned it back on.",
-    landscape: "/art/lighthouse.webp",
-    portrait: "/art/portrait-lighthouse.webp",
-    ages: "Ages 11+",
-    targetAge: 12,
-    band: "older",
-    minutes: 30,
-    genres: ["Mystery", "Adventure"],
-    tags: ["mystery", "adventure", "rainy", "strange"],
-    seriesId: "greypoint",
-    glow: "oklch(0.75 0.08 220)",
-    tint: "oklch(0.26 0.05 230)",
-  },
-  {
-    id: "map",
-    title: "The Map That Wasn't There Yesterday",
-    kicker: "A Storylands Original",
-    hook: "A hand-drawn map appears inside Leo's locker. It shows a place underneath the school.",
-    synopsis:
-      "No one admits to leaving it. The paper is old, the ink is fresh, and the map is unmistakably of the school — plus three floors that shouldn't exist. Leo has until the last bell to decide whether some doors are better left unopened.",
-    landscape: "/art/map.webp",
-    ages: "Ages 11+",
-    targetAge: 12,
-    band: "older",
-    minutes: 25,
-    genres: ["Mystery", "Adventure"],
-    tags: ["mystery", "adventure", "strange"],
-    glow: "oklch(0.78 0.11 60)",
-    tint: "oklch(0.27 0.05 200)",
-  },
-  {
-    id: "seven",
-    title: "Seven Minutes Missing",
-    kicker: "A Storylands Original",
-    hook: "Every clock in town skipped exactly seven minutes. Maya seems to be the only one who noticed.",
-    synopsis:
-      "At 8:14 the whole town blinked forward to 8:21. No one remembers the gap. No one but Maya, who counted every second of it. Now she has to work out where seven minutes go when an entire town agrees to forget them.",
-    landscape: "/art/seven-minutes.webp",
-    ages: "Ages 11+",
-    targetAge: 12,
-    band: "older",
-    minutes: 30,
-    genres: ["Mystery", "Sci-Fi"],
-    tags: ["mystery", "strange", "suspense"],
-    glow: "oklch(0.75 0.08 300)",
-    tint: "oklch(0.26 0.05 290)",
-  },
-  {
-    id: "bellweather",
-    title: "The Last Train to Bellweather",
-    kicker: "A Storylands Original",
-    hook: "The train shouldn't stop here. Tonight it did.",
-    synopsis:
-      "Bellweather station closed decades ago, but the 11:50 has just pulled in, doors open, lamps warm against the fog. It is waiting. The only question left is whether to step aboard and find out where a train goes when it stops somewhere it shouldn't.",
-    landscape: "/art/bellweather.webp",
-    ages: "Ages 12+",
-    targetAge: 12,
-    band: "older",
-    minutes: 35,
-    genres: ["Adventure", "Mystery"],
-    tags: ["adventure", "mystery", "rainy", "strange"],
-    glow: "oklch(0.8 0.11 70)",
-    tint: "oklch(0.25 0.05 250)",
-  },
-
-  // ---------- TEEN · approx 14–16 ----------
-  {
-    id: "vanished",
-    title: "Vanished",
-    kicker: "A Storylands Original",
-    hook: "The police think they left. You don't.",
-    synopsis:
-      "Yesterday they were here. Today their phone is off and their side of the room is cold. Everyone has decided this is simple. You are the only one still asking the questions that don't have simple answers.",
-    landscape: "/art/vanished.webp",
-    ages: "Ages 14+",
-    targetAge: 15,
-    band: "teen",
-    minutes: 45,
-    genres: ["Mystery", "Thriller"],
-    tags: ["mystery", "suspense"],
-    glow: "oklch(0.72 0.05 250)",
-    tint: "oklch(0.24 0.03 250)",
-  },
-  {
-    id: "blackriver",
-    title: "Black River",
-    kicker: "A Storylands Original",
-    hook: "Something happened near Black River. Everyone remembers it differently.",
-    synopsis:
-      "The town agrees on the date and nothing else. Six people, six versions, one stretch of dark water that keeps its own counsel. The truth is somewhere between the stories — if you can stand to line them up beside each other.",
-    landscape: "/art/black-river.webp",
-    ages: "Ages 14+",
-    targetAge: 15,
-    band: "teen",
-    minutes: 45,
-    genres: ["Mystery", "Suspense"],
-    tags: ["mystery", "suspense", "rainy"],
-    seriesId: "blackriver",
-    glow: "oklch(0.7 0.06 160)",
-    tint: "oklch(0.23 0.04 175)",
-  },
-  {
-    id: "signal",
-    title: "Signal Lost",
-    kicker: "A Storylands Original",
-    hook: "Only four appear in the photograph taken that night.",
-    synopsis:
-      "Five friends hiked past the last cell tower for the quiet. They got it. The photo from the ridge shows the sunset, the treeline, and four of them — and no one can explain the empty space where the fifth was standing.",
-    landscape: "/art/signal-lost.webp",
-    portrait: "/art/portrait-signal.webp",
-    ages: "Ages 14+",
-    targetAge: 15,
-    band: "teen",
-    minutes: 40,
-    genres: ["Mystery", "Adventure"],
-    tags: ["adventure", "suspense", "mystery"],
-    glow: "oklch(0.76 0.1 55)",
-    tint: "oklch(0.24 0.04 250)",
-  },
-  {
-    id: "room217",
-    title: "Room 217",
-    kicker: "A Storylands Original",
-    hook: "The hotel says the room doesn't exist. Your key says otherwise.",
-    synopsis:
-      "The front desk is polite and completely certain: there is no 217. The corridor disagrees. So does the brass key warming in your hand. Between the second and third floor there is a door, and behind it a night that never quite ends.",
-    landscape: "/art/room-217.webp",
-    ages: "Ages 13+",
-    targetAge: 15,
-    band: "teen",
-    minutes: 35,
-    genres: ["Mystery", "Suspense"],
-    tags: ["mystery", "suspense", "strange"],
-    glow: "oklch(0.72 0.09 40)",
-    tint: "oklch(0.23 0.04 30)",
-  },
-]
-
-export const series: Series[] = [
-  {
-    id: "pip",
-    name: "Pip",
-    tagline: "The little dragon with a late-arriving flame.",
-    image: "/characters/pip.webp",
-    count: 2,
-    band: "young",
-    glow: "oklch(0.82 0.13 68)",
-  },
-  {
-    id: "juniper",
-    name: "Juniper",
-    tagline: "Moonlit errands in a forest with a mind of its own.",
-    image: "/art/juniper.webp",
-    count: 3,
-    band: "middle",
-    glow: "oklch(0.8 0.09 210)",
-  },
-  {
-    id: "greypoint",
-    name: "Grey Point Mysteries",
-    tagline: "Three friends. One coast. A great many things that won't stay explained.",
-    image: "/art/lighthouse.webp",
-    count: 5,
-    band: "older",
-    glow: "oklch(0.75 0.08 220)",
-  },
-  {
-    id: "blackriver",
-    name: "Black River",
-    tagline: "A town, a river, and the versions of the truth it keeps.",
-    image: "/art/black-river.webp",
-    count: 3,
-    band: "teen",
-    glow: "oklch(0.7 0.06 160)",
-  },
-]
-
-export const profiles: Profile[] = [
-  {
-    id: "avery",
-    name: "Avery",
-    age: 6,
-    bands: ["young"],
-    heroId: "pip",
-    avatar: "/characters/pip.webp",
-    color: "oklch(0.82 0.13 68)",
-  },
-  {
-    id: "maya",
-    name: "Maya",
-    age: 10,
-    bands: ["young", "middle"],
-    heroId: "firefly",
-    avatar: "/art/firefly-hero.webp",
-    color: "oklch(0.8 0.12 72)",
-  },
-  {
-    id: "leo",
-    name: "Leo",
-    age: 13,
-    bands: ["middle", "older"],
-    heroId: "lighthouse",
-    avatar: "/art/lighthouse.webp",
-    color: "oklch(0.75 0.08 220)",
-  },
-  {
-    id: "alex",
-    name: "Alex",
-    age: 16,
-    bands: ["older", "teen"],
-    heroId: "vanished",
-    avatar: "/art/vanished.webp",
-    color: "oklch(0.72 0.05 250)",
-  },
 ]
 
 export type Shelf = {
@@ -488,10 +187,32 @@ export type Shelf = {
   paintedCovers?: boolean
 }
 
-const byId = (id: string) => stories.find((s) => s.id === id)!
+/**
+ * The series a reader can actually follow.
+ *
+ * `count` is COUNTED, not written down. The hand-written numbers claimed
+ * Juniper had 3 books, Grey Point 5 and Black River 3; each had exactly one
+ * story in the catalog and none of the three had a book anybody could open. A
+ * series with fewer than two readable books is not a series, so it is left out
+ * rather than shown as a shelf of one.
+ */
+const seriesDefs: Omit<Series, "count">[] = [
+  {
+    id: "pip",
+    name: "Pip",
+    tagline: "The little dragon with a late-arriving flame.",
+    image: "/characters/pip.webp",
+    band: "young",
+    glow: "oklch(0.82 0.13 68)",
+  },
+]
+
+export const series: Series[] = seriesDefs
+  .map((s) => ({ ...s, count: stories.filter((x) => x.seriesId === s.id && x.readerSlug).length }))
+  .filter((s) => s.count >= 2)
 
 export function storyById(id: string) {
-  return byId(id)
+  return stories.find((s) => s.id === id)
 }
 
 /**
@@ -505,8 +226,8 @@ export function thumbOf(src: string) {
   return src.replace("/art/", "/art/thumb/").replace("/characters/", "/characters/thumb/")
 }
 
-export function seriesForProfile(p: Profile) {
-  return series.filter((s) => p.bands.includes(s.band))
+export function seriesForBands(bands: Band[]) {
+  return series.filter((s) => bands.includes(s.band))
 }
 
 /** The story whose reader lives at /read/<slug>, if one does. */
@@ -585,28 +306,35 @@ const shelfDefs: ShelfDef[] = [
 // once a band crosses this threshold.
 export const RICH_SHELVES_THRESHOLD = 20
 
-export function poolForProfile(p: Profile): Story[] {
-  return stories.filter((s) => p.bands.includes(s.band))
+export function poolForBands(bands: Band[]): Story[] {
+  return stories.filter((s) => bands.includes(s.band))
 }
 
-export function shouldUseRichShelves(p: Profile): boolean {
-  return poolForProfile(p).length >= RICH_SHELVES_THRESHOLD
+export function shouldUseRichShelves(bands: Band[]): boolean {
+  return poolForBands(bands).length >= RICH_SHELVES_THRESHOLD
 }
 
-// The books a profile can actually read right now (built = has a reader route), for the hero
-// rotation and the library grid ordering (built first, then coming-soon).
-export function libraryForProfile(p: Profile): Story[] {
-  const pool = poolForProfile(p)
-  const built = pool.filter((s) => s.readerSlug)
+/**
+ * The books this reader can open, readable ones first.
+ *
+ * Everything in the catalog is readable now — the twelve entries that only had a
+ * cover moved to docs/STUDIO_SLATE.md, because twelve of nineteen titles opening
+ * an apology is a facade, not a library. The split is kept because the engine
+ * will add books faster than the art can be generated, and a half-finished book
+ * should sort last rather than disappear.
+ */
+export function libraryForBands(bands: Band[]): Story[] {
+  const pool = poolForBands(bands)
+  const readable = pool.filter((s) => s.readerSlug)
   const comingSoon = pool.filter((s) => !s.readerSlug)
-  return [...built, ...comingSoon]
+  return [...readable, ...comingSoon]
 }
 
-// Hero rotation candidates: built books in the band (fall back to whole pool if none built).
-export function heroRotationForProfile(p: Profile): Story[] {
-  const pool = poolForProfile(p)
-  const built = pool.filter((s) => s.readerSlug)
-  return built.length > 0 ? built : pool
+/** Hero rotation candidates: books that can actually be opened. */
+export function heroRotationForBands(bands: Band[]): Story[] {
+  const pool = poolForBands(bands)
+  const readable = pool.filter((s) => s.readerSlug)
+  return readable.length > 0 ? readable : pool
 }
 
 /**
@@ -614,13 +342,12 @@ export function heroRotationForProfile(p: Profile): Story[] {
  *   titles the "Because You Read" shelf — with nothing read, that shelf is
  *   dropped rather than naming a book the reader has never seen.
  */
-export function shelvesForProfile(p: Profile, recent?: Story): Shelf[] {
-  const pool = stories.filter((s) => p.bands.includes(s.band))
+export function shelvesForBands(bands: Band[], recent?: Story): Shelf[] {
+  const pool = poolForBands(bands)
   const shelves: Shelf[] = []
-  const heroId = p.heroId
   // Ages 4–7 read as a picture-book shelf: show the tall 9:16 character covers as
   // portrait "book covers" rather than letterboxed landscape thumbnails.
-  const youngOnly = p.bands.length === 1 && p.bands[0] === "young"
+  const youngOnly = bands.length === 1 && bands[0] === "young"
   const defaultLayout: "landscape" | "portrait" = youngOnly ? "portrait" : "landscape"
 
   for (const def of shelfDefs) {
@@ -640,13 +367,11 @@ export function shelvesForProfile(p: Profile, recent?: Story): Shelf[] {
     shelves.push({ title, layout: def.layout ?? defaultLayout, stories: items, paintedCovers: youngOnly })
   }
 
-  // Always surface a "Popular With Readers Your Age" shelf tuned to the band
-  const ageShelf = pool.filter((s) => s.id !== heroId)
-  if (ageShelf.length >= 4) {
+  if (pool.length >= 4) {
     shelves.splice(2, 0, {
       title: "Popular With Readers Your Age",
       layout: defaultLayout,
-      stories: ageShelf,
+      stories: pool,
       paintedCovers: youngOnly,
     })
   }
@@ -654,13 +379,28 @@ export function shelvesForProfile(p: Profile, recent?: Story): Shelf[] {
   return shelves
 }
 
-export const moodFilters = [
-  "Funny",
-  "Mystery",
-  "Magic",
-  "Adventure",
-  "Friendship",
-  "Suspense",
-  "Under 15 min",
-  "Under 30 min",
-] as const
+/**
+ * Mood chips in the search overlay.
+ *
+ * Only moods that match something. The list used to offer Mystery, Suspense,
+ * "Under 30 min" and two more that returned nothing at all for a four-year-old,
+ * which is a filter that tells a child their search broke.
+ */
+export const moodFilters = (
+  [
+    "Funny",
+    "Magic",
+    "Adventure",
+    "Friendship",
+    "Heart",
+    "Cozy",
+    "Family",
+    "Under 15 min",
+  ] as const
+).filter((mood) => {
+  if (mood === "Under 15 min") return stories.some((s) => s.minutes <= 15)
+  const needle = mood.toLowerCase()
+  return stories.some(
+    (s) => s.tags.includes(needle) || s.genres.some((g) => g.toLowerCase() === needle),
+  )
+})

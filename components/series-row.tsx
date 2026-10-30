@@ -1,11 +1,11 @@
 "use client"
 
 import Image from "next/image"
-import type { Profile } from "@/lib/catalog"
-import { seriesForProfile, thumbOf } from "@/lib/catalog"
+import type { Band } from "@/lib/catalog"
+import { seriesForBands, thumbOf } from "@/lib/catalog"
 
-export function SeriesRow({ profile }: { profile: Profile }) {
-  const items = seriesForProfile(profile)
+export function SeriesRow({ bands }: { bands: Band[] }) {
+  const items = seriesForBands(bands)
   if (items.length < 1) return null
 
   return (

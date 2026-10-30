@@ -1,26 +1,50 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Image from "next/image"
 import type { Story } from "@/lib/catalog"
 import { Play, Info } from "lucide-react"
 
+/**
+ * Does this visitor want motion?
+ *
+ * The featured story used to advance every 7 seconds with no way to stop it,
+ * which fails WCAG 2.2.2 and, more to the point, changes the book under a child
+ * who is still reading the sentence. The CSS reset in globals.css could not help:
+ * the rotation is a JS interval, so it has to ask.
+ */
+function usePrefersMotion() {
+  const [wants, setWants] = useState(true)
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)")
+    const apply = () => setWants(!mq.matches)
+    apply()
+    mq.addEventListener("change", apply)
+    return () => mq.removeEventListener("change", apply)
+  }, [])
+  return wants
+}
+
 export function Hero({
   story,
+  readerName,
   onBegin,
   onInfo,
   rotation,
 }: {
   story: Story
+  readerName?: string
   onBegin: (s: Story) => void
   onInfo: (s: Story) => void
   rotation?: { index: number; count: number; onSelect: (i: number) => void }
 }) {
   const frame = useRef<HTMLDivElement>(null)
   const [offset, setOffset] = useState({ x: 0, y: 0 })
+  const wantsMotion = usePrefersMotion()
+  const [playing, setPlaying] = useState(true)
 
   const onMove = (e: React.PointerEvent) => {
-    if (e.pointerType === "touch") return
+    if (e.pointerType === "touch" || !wantsMotion) return
     const el = frame.current
     if (!el) return
     const r = el.getBoundingClientRect()
@@ -29,6 +53,17 @@ export function Hero({
     setOffset({ x: px * -18, y: py * -12 })
   }
 
+  const count = rotation?.count ?? 0
+  const advance = rotation?.onSelect
+  const index = rotation?.index ?? 0
+  const rotating = playing && wantsMotion && count > 1
+
+  useEffect(() => {
+    if (!rotating || !advance) return
+    const t = setInterval(() => advance((index + 1) % count), 7000)
+    return () => clearInterval(t)
+  }, [rotating, advance, index, count])
+
   const isFirefly = story.id === "firefly"
 
   return (
@@ -36,6 +71,8 @@ export function Hero({
       ref={frame}
       onPointerMove={onMove}
       onPointerLeave={() => setOffset({ x: 0, y: 0 })}
+      aria-roledescription="carousel"
+      aria-label="Featured stories"
       className="relative isolate flex min-h-[68svh] items-center overflow-hidden sm:min-h-[74svh]"
     >
       <div
@@ -66,6 +103,9 @@ export function Hero({
       <div className="relative w-full px-4 pb-10 pt-24 sm:px-6 sm:pb-12 lg:px-10">
         <div className="flex items-center">
           <div className="max-w-xl animate-fade-up">
+            {readerName && (
+              <p className="mb-2 font-serif text-lg text-white/80">Hello, {readerName}.</p>
+            )}
             <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.32em] text-primary">
               {story.kicker}
             </p>
@@ -98,19 +138,42 @@ export function Hero({
           </div>
         </div>
 
-        {/* Rotation dots */}
+        {/* Rotation dots, and a stop control — a carousel that advances itself
+            must be stoppable. Choosing a dot also stops it, because somebody who
+            picked a story is not waiting to be shown another one. */}
         {rotation && rotation.count > 1 && (
-          <div className="mt-8 flex items-center gap-2">
-            {Array.from({ length: rotation.count }).map((_, i) => (
+          <div className="mt-8 flex items-center gap-3">
+            {/* The dot is the indicator; the button around it is the target. A
+                12px dot is a guess with a thumb, so each one carries a 44px
+                box and only the pill inside it is painted. */}
+            <div className="-mx-2 flex items-center">
+              {Array.from({ length: rotation.count }).map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => {
+                    setPlaying(false)
+                    rotation.onSelect(i)
+                  }}
+                  aria-label={`Show featured story ${i + 1} of ${rotation.count}`}
+                  aria-current={i === rotation.index}
+                  className="grid h-11 w-7 place-items-center"
+                >
+                  <span
+                    className={`block h-1.5 rounded-full transition-all duration-300 ${
+                      i === rotation.index ? "w-6 bg-primary" : "w-1.5 bg-white/30"
+                    }`}
+                  />
+                </button>
+              ))}
+            </div>
+            {wantsMotion && (
               <button
-                key={i}
-                onClick={() => rotation.onSelect(i)}
-                aria-label={`Show featured story ${i + 1}`}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  i === rotation.index ? "w-6 bg-primary" : "w-1.5 bg-white/30 hover:bg-white/60"
-                }`}
-              />
-            ))}
+                onClick={() => setPlaying((p) => !p)}
+                className="min-h-11 rounded-full px-3 text-[11px] uppercase tracking-[0.18em] text-white/50 transition-colors hover:text-white"
+              >
+                {playing ? "Stop" : "Play"}
+              </button>
+            )}
           </div>
         )}
       </div>

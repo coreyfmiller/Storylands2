@@ -132,7 +132,10 @@ export function StoryDetail({
               {related.map((r) => (
                 <button
                   key={r.id}
-                  onClick={() => onOpen(storyById(r.id))}
+                  /* `r` is already the Story. The old code round-tripped it
+                     through storyById, which now returns undefined for an
+                     unknown id instead of a non-null assertion. */
+                  onClick={() => onOpen(r)}
                   className="group text-left"
                 >
                   <div

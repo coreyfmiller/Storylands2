@@ -11,21 +11,62 @@ type ModalProps = {
   label: string
 }
 
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])'
+
 export function Modal({ open, onClose, children, label }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   const mounted = useMounted()
 
   useEffect(() => {
     if (!open) return
+
+    // Where focus was, so it can go back. Without this, closing the sheet drops
+    // focus to the top of the document and a keyboard user starts again.
+    const returnTo = document.activeElement as HTMLElement | null
+
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose()
+      if (e.key === "Escape") {
+        onClose()
+        return
+      }
+      // Keep Tab inside the dialog. aria-modal tells a screen reader the rest of
+      // the page is inert; it does nothing at all to the tab order, so tabbing
+      // used to walk straight out into the shelf behind the sheet.
+      if (e.key !== "Tab") return
+      const panel = panelRef.current
+      if (!panel) return
+      const items = [...panel.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(
+        (el) => el.offsetParent !== null,
+      )
+      if (items.length === 0) return
+      const first = items[0]
+      const last = items[items.length - 1]
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
     }
+
     document.addEventListener("keydown", onKey)
     const prev = document.body.style.overflow
     document.body.style.overflow = "hidden"
+
+    // Move focus in, so the first Tab lands inside rather than behind.
+    const id = window.setTimeout(() => {
+      const panel = panelRef.current
+      const target = panel?.querySelector<HTMLElement>(FOCUSABLE)
+      target?.focus()
+    }, 0)
+
     return () => {
+      window.clearTimeout(id)
       document.removeEventListener("keydown", onKey)
       document.body.style.overflow = prev
+      returnTo?.focus?.()
     }
   }, [open, onClose])
 

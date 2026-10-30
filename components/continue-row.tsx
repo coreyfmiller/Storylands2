@@ -2,7 +2,7 @@
 
 import { useMemo } from "react"
 import Image from "next/image"
-import type { Profile, Story } from "@/lib/catalog"
+import type { Band, Story } from "@/lib/catalog"
 import { storyByReaderSlug, thumbOf } from "@/lib/catalog"
 import { useProgress } from "@/lib/progress"
 import { Play } from "lucide-react"
@@ -14,10 +14,10 @@ import { Play } from "lucide-react"
 // from page one anyway. Now it reads lib/progress.ts, which the reader writes,
 // so an empty row means nothing has been read yet. Which is the truth.
 export function ContinueRow({
-  profile,
+  bands,
   onResume,
 }: {
-  profile: Profile
+  bands: Band[]
   onResume: (s: Story) => void
 }) {
   const { progress } = useProgress()
@@ -28,7 +28,7 @@ export function ContinueRow({
       .sort((a, b) => b[1].updatedAt - a[1].updatedAt)
       .map(([slug, p]) => {
         const story = storyByReaderSlug(slug)
-        if (!story || !profile.bands.includes(story.band)) return null
+        if (!story || !bands.includes(story.band)) return null
         return {
           story,
           // Picture books have pages, not chapters, and the reader knows exactly
@@ -39,14 +39,14 @@ export function ContinueRow({
       })
       .filter((x): x is { story: Story; label: string; fraction: number } => x !== null)
       .slice(0, 6)
-  }, [progress, profile])
+  }, [progress, bands])
 
   if (!items.length) return null
 
   // Ages 4–7 use tall 9:16 character covers with titles painted into the art. Render them
   // as portrait cards (matching the shelves) and let the art carry the name, so this row
   // no longer looks like a different design language than everything below it.
-  const youngOnly = profile.bands.length === 1 && profile.bands[0] === "young"
+  const youngOnly = bands.length === 1 && bands[0] === "young"
 
   return (
     <section className="py-5">

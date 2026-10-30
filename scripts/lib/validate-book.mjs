@@ -207,10 +207,16 @@ export function validateBook({ book, refs = {}, bios = {} }) {
     if (!bios[c]) warnings.push(`character "${c}" has a reference but no CHARACTER_BIOS line`)
   }
 
+  // Uneven pages now cost the whole book, not just one page.
+  //
+  // The reader picks ONE type size per book and it is set by the longest page,
+  // so a single 45-word page drags every other page down with it: Nibs renders
+  // at 24px on a phone while its shortest pages would carry 34. Twenty is tight
+  // on purpose — this is the warning that protects how the book actually reads.
   const spread = words.length ? Math.max(...words) - Math.min(...words) : 0
-  if (spread > 28) {
+  if (spread > 20) {
     warnings.push(
-      `word counts span ${spread} (${Math.min(...words)}-${Math.max(...words)}); uneven pages make the type size jump between turns`,
+      `word counts span ${spread} (${Math.min(...words)}-${Math.max(...words)}); the longest page sets the type size for the WHOLE book, so evening these out makes every page bigger`,
     )
   }
 

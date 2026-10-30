@@ -5,85 +5,146 @@ import Image from "next/image"
 import Link from "next/link"
 import { bookCover, describePage, type Book } from "@/books/types"
 import { isResumable, readProgress, recordProgress } from "@/lib/progress"
+import { RATES, segmentsOf, useReadAloud, type Segment } from "@/lib/read-aloud"
+import { stories, type Story } from "@/lib/catalog"
 import { X, ChevronLeft, ChevronRight, RotateCcw, Volume2, VolumeX } from "lucide-react"
 
-// AutoFitText: renders page prose as large as possible while GUARANTEEING it fits its
-// container with no scroll. This is what enforces the "text always fits, never scrolls"
-// rule at runtime, on any device, for any page length.
-const MAX_TEXT_PX = 34 // preferred phone size; a long page shrinks below this as needed
-const MIN_TEXT_PX = 17 // never smaller than this (comfortably readable floor)
+// The preferred phone size, and the floor it will shrink to. A page that has to
+// reach the floor is too long — see .kiro/steering/reader-layout.md.
+const MAX_TEXT_PX = 34
+const MIN_TEXT_PX = 17
 
-function AutoFitText({ text }: { text: string }) {
-  const boxRef = useRef<HTMLDivElement | null>(null)
-  const pRef = useRef<HTMLParagraphElement | null>(null)
+/**
+ * The one type size this whole book is read at.
+ *
+ * Sizing each page independently made the type breathe between turns: 34px,
+ * then 26px, then 31px. reader-layout.md calls that out — "uneven pages make
+ * the auto-fit size jump around between turns, which feels cheap" — and the
+ * per-page fit was what caused it.
+ *
+ * So the longest page decides, and every page uses that. Measured by rendering
+ * the longest page once, invisibly, and binary-searching it: a larger font never
+ * fits better, so halving the range finds the answer in five layout reads rather
+ * than the forty a one-pixel-at-a-time walk cost on every single page turn.
+ */
+function useBookTextSize(pages: Book["pages"]) {
+  // A callback ref, not a plain one: the panel being measured does not exist on
+  // the cover, so an effect keyed on anything else runs while the ref is still
+  // null, bails out, and never runs again. That is how this shipped reporting
+  // 34px for every book while most pages overflowed by eighty pixels.
+  const [box, setBox] = useState<HTMLDivElement | null>(null)
+  const probeRef = useRef<HTMLParagraphElement | null>(null)
   const [size, setSize] = useState(MAX_TEXT_PX)
 
-  // Binary search, not a one-pixel-at-a-time walk down from 34. Each probe reads
-  // scrollHeight, which forces a synchronous layout, so the old loop could cost up to
-  // 40 reflows on every single page turn — on the one frame a child is watching. A
-  // larger font never fits better, so halving the range finds the same answer in five.
+  const texts = useMemo(() => pages.map((p) => p.text), [pages])
+
   const fit = useCallback(() => {
-    const box = boxRef.current
-    const p = pRef.current
+    const p = probeRef.current
     if (!box || !p) return
+
+    // The usable height is the box minus its own padding. clientHeight includes
+    // padding, and comparing against it directly let text run under the page
+    // controls — the panel's bottom padding is 80px of clearance for them.
+    const cs = getComputedStyle(box)
+    const innerHeight =
+      box.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)
+    const innerWidth = box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
+    if (innerHeight <= 0 || innerWidth <= 0) return
 
     const fits = (px: number) => {
       p.style.fontSize = `${px}px`
-      return p.scrollHeight <= box.clientHeight && p.scrollWidth <= box.clientWidth
+      return p.scrollHeight <= innerHeight && p.scrollWidth <= innerWidth
     }
 
-    let lo = MIN_TEXT_PX
-    let hi = MAX_TEXT_PX
-    let best = MIN_TEXT_PX
-    while (lo <= hi) {
-      const mid = (lo + hi) >> 1
-      if (fits(mid)) {
-        best = mid
-        lo = mid + 1
-      } else {
-        hi = mid - 1
+    /** Largest size the text currently in the probe fits at. */
+    const largestThatFits = () => {
+      let lo = MIN_TEXT_PX
+      let hi = MAX_TEXT_PX
+      let best = MIN_TEXT_PX
+      while (lo <= hi) {
+        const mid = (lo + hi) >> 1
+        if (fits(mid)) {
+          best = mid
+          lo = mid + 1
+        } else {
+          hi = mid - 1
+        }
       }
+      return best
     }
-    // Leave the winning size on the node rather than clearing it. React's last
-    // render already believes the inline font-size is `size`px, so if `best`
-    // comes back equal to it there is no re-render to restore what we wiped,
-    // and the prose silently drops to the stylesheet's 16px.
+
+    // Every page, not the one with the most characters.
+    //
+    // Picking the longest page by character count was wrong, and wrong in the
+    // direction that matters: rendered height comes from how the text WRAPS and
+    // from the blank line between paragraphs, not from how many characters it
+    // has. Pip's page 1 is shorter than his page 13 and two lines taller,
+    // because it is two paragraphs. The result was 34px chosen off page 13
+    // while pages 1, 3 and 5 overflowed by 84px.
+    //
+    // Thirteen pages at five probes each is sixty-five layout reads, once per
+    // book. The version this replaced did up to forty on every page turn.
+    let best = MAX_TEXT_PX
+    for (const text of texts) {
+      p.textContent = text
+      best = Math.min(best, largestThatFits())
+      if (best === MIN_TEXT_PX) break
+    }
+
     p.style.fontSize = `${best}px`
     setSize(best)
-  }, [])
+  }, [box, texts])
 
   useLayoutEffect(() => {
     fit()
-  }, [fit, text])
+  }, [fit])
 
-  // Turning a phone sideways halves the height of the text panel. Without this the
-  // prose stayed at the portrait size and quietly overflowed, which is the one thing
-  // this component exists to prevent.
+  // Turning a phone sideways changes the height of the text panel. Without this
+  // the prose kept its portrait size and overflowed, which is the one thing the
+  // fitting exists to prevent.
   useEffect(() => {
-    const box = boxRef.current
     if (!box || typeof ResizeObserver === "undefined") return
     const ro = new ResizeObserver(() => fit())
     ro.observe(box)
     return () => ro.disconnect()
-  }, [fit])
+  }, [box, fit])
 
-  return (
-    <div ref={boxRef} className="flex h-full w-full items-center justify-center overflow-hidden">
-      <p
-        ref={pRef}
-        className="mx-auto max-w-md whitespace-pre-line text-pretty font-serif text-[#3b2a1c]"
-        style={{ fontSize: `${size}px`, lineHeight: 1.45 }}
-      >
-        {text}
-      </p>
-    </div>
-  )
+  return { size, setBox, probeRef }
 }
 
-// A full-bleed 9:16 picture-book reader. One illustration per page fills the screen; the
-// prose sits as a caption in the calm bottom zone. Tap the right half (or arrow / swipe)
-// to advance, left half to go back. A cover page opens it; a final "The End" page offers
-// read-again. Designed phone-first, works one-handed.
+/** The page prose, with the sentence being read aloud marked. */
+function PageText({
+  segments,
+  speaking,
+  size,
+}: {
+  segments: Segment[]
+  speaking: number
+  size: number
+}) {
+  return (
+    <p
+      className="mx-auto max-w-md whitespace-pre-line text-pretty font-serif text-[#3b2a1c]"
+      style={{ fontSize: `${size}px`, lineHeight: 1.45 }}
+    >
+      {segments.map((seg, i) => (
+        <span
+          key={seg.start}
+          /* A warm wash behind the sentence, not a colour change on the words:
+             reducing contrast on the thing a child is trying to read would be a
+             strange way to help them read it. */
+          className={
+            i === speaking
+              ? "rounded-[0.2em] bg-[#e8c88a]/70 transition-colors duration-200"
+              : "transition-colors duration-200"
+          }
+        >
+          {seg.text}
+        </span>
+      ))}
+    </p>
+  )
+}
 
 const COVER = -1
 
@@ -99,16 +160,33 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
   )
   const restart = useCallback(() => setIndex(0), [])
 
-  // Where this book was left off, read once after mount. Reading localStorage during
-  // render would make the server's HTML and the first client paint disagree.
+  const stage = index === COVER ? "cover" : index >= total ? "end" : "page"
+  const page = stage === "page" ? book.pages[index] : null
+
+  const { size, setBox, probeRef } = useBookTextSize(book.pages)
+  const segments = useMemo(() => (page ? segmentsOf(page.text) : []), [page])
+
+  // Auto-turn when the narration reaches the end of a page. This is what lets a
+  // child who cannot read hold the phone and just listen; without it they have
+  // to guess when to tap. Guarded on still being on the page that was spoken,
+  // so a manual turn mid-sentence can't cause a double advance.
+  const spokenIndex = useRef(index)
+  spokenIndex.current = index
+  const onNarrationEnd = useCallback(() => {
+    if (spokenIndex.current !== index) return
+    setIndex((i) => (i === index ? Math.min(total, i + 1) : i))
+  }, [index, total])
+
+  const aloud = useReadAloud(page?.text ?? null, segments, onNarrationEnd)
+
+  // Where this book was left off, read once after mount. Reading localStorage
+  // during render would make the server's HTML and the first client paint differ.
   const [resumeAt, setResumeAt] = useState<number | null>(null)
   useEffect(() => {
     const saved = readProgress()[bookSlug]
     if (isResumable(saved) && saved.total === total) setResumeAt(saved.page)
   }, [bookSlug, total])
 
-  // Record the furthest page reached, so "Continue Your Story" on the library is the
-  // real thing rather than a number somebody typed into a table.
   useEffect(() => {
     if (index < 0) return
     recordProgress(bookSlug, Math.min(index, total - 1), total)
@@ -123,9 +201,9 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
     return () => window.removeEventListener("keydown", onKey)
   }, [go])
 
-  // Warm the next page's illustration while the current one is being read. Only the
-  // cover and the open page get `priority`; marking all fourteen priority made them
-  // compete for the same connections and the first page arrived later, not sooner.
+  // Warm the next page's illustration while the current one is being read. Only
+  // the cover and the open page get `priority`; marking all fourteen priority
+  // made them compete for the same connections and the open page arrived later.
   useEffect(() => {
     const next = book.pages[index + 1]
     if (!next?.art) return
@@ -133,10 +211,10 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
     img.src = `/${next.art}`
   }, [index, book.pages])
 
-  // Touch swipe — ONLY on story pages (index 0..total-1). Never on the cover or end card:
-  // those screens have their own full-screen tap button, and letting the frame's swipe also
-  // fire there caused a double-navigation (cover <-> page 1 bounce). We track both axes so a
-  // vertical scroll or a plain tap is never mistaken for a horizontal page-turn.
+  // Touch swipe — ONLY on story pages. The cover and end card have their own
+  // full-screen tap buttons, and letting the frame's swipe fire there too caused
+  // a double-navigation. Both axes are tracked so a vertical scroll or a plain
+  // tap is never mistaken for a page turn.
   const touchStart = useRef<{ x: number; y: number } | null>(null)
   const onTouchStart = (e: React.TouchEvent) => {
     const t = e.touches[0]
@@ -146,37 +224,28 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
     const start = touchStart.current
     touchStart.current = null
     if (!start) return
-    // Only story pages accept swipe. Cover (-1) and end (>= total) are tap-only.
     if (index < 0 || index >= total) return
     const t = e.changedTouches[0]
     const dx = t.clientX - start.x
     const dy = t.clientY - start.y
-    // Require a clearly horizontal gesture: enough distance AND more horizontal than vertical.
     if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
       go(dx < 0 ? 1 : -1)
     }
   }
 
-  const stage = useMemo(() => {
-    if (index === COVER) return "cover" as const
-    if (index >= total) return "end" as const
-    return "page" as const
-  }, [index, total])
-
-  const page = stage === "page" ? book.pages[index] : null
-  const readAloud = useReadAloud(page?.text ?? null)
-
   return (
     <div className="fixed inset-0 z-[200] bg-black text-white">
-      {/* Reading frame: centered 9:16 stage, letterboxed on wide screens, full-bleed on phones.
-          touch-pan-y + overscroll-none stops the browser's edge back-swipe from stealing our
-          horizontal page-turn gesture on mobile. */}
+      {/* A screen reader gets told the page changed. Nothing announced it before,
+          so to anyone not looking at the screen the book never moved. */}
+      <div className="sr-only" role="status" aria-live="polite">
+        {stage === "page" ? `Page ${index + 1} of ${total}` : stage === "end" ? "The end" : "Cover"}
+      </div>
+
       <div
         className="relative mx-auto h-full w-full max-w-[calc(100svh*9/16)] touch-pan-y overscroll-none select-none"
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
-        {/* Tap zones — only on story pages, and beneath the caption/chrome so buttons work */}
         {stage === "page" && (
           <>
             <button
@@ -192,7 +261,7 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
           </>
         )}
 
-        {/* Top chrome: close + progress + read-aloud */}
+        {/* Top chrome: close, progress, read-aloud */}
         <div className="pointer-events-none absolute inset-x-0 top-0 z-40 flex items-center gap-3 bg-gradient-to-b from-black/60 to-transparent px-4 pb-6 pt-3">
           <Link
             href="/"
@@ -218,22 +287,43 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
               </div>
             )}
           </div>
-          {readAloud.supported && (
-            <button
-              onClick={readAloud.toggle}
-              aria-pressed={readAloud.on}
-              aria-label={readAloud.on ? "Turn read-aloud off" : "Read this book aloud"}
-              className="pointer-events-auto grid h-11 w-11 place-items-center rounded-full bg-black/40 text-white/80 backdrop-blur transition-colors hover:text-white"
-            >
-              {readAloud.on ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
-            </button>
+          {aloud.supported && (
+            <div className="pointer-events-auto flex items-center gap-1">
+              {/* Speed only appears once read-aloud is on, because it is
+                  meaningless otherwise. Three steps, not a slider: nobody is
+                  tuning a decimal with a toddler on their lap. */}
+              {aloud.on && (
+                <div className="flex items-center overflow-hidden rounded-full bg-black/40 backdrop-blur">
+                  {RATES.map((r) => (
+                    <button
+                      key={r}
+                      onClick={() => aloud.setRate(r)}
+                      aria-pressed={aloud.rate === r}
+                      aria-label={`Read at ${r === 0.7 ? "slow" : r === 0.85 ? "normal" : "quick"} speed`}
+                      className={`min-h-11 px-2.5 text-[11px] font-medium transition-colors ${
+                        aloud.rate === r ? "bg-white/20 text-white" : "text-white/55 hover:text-white"
+                      }`}
+                    >
+                      {r === 0.7 ? "Slow" : r === 0.85 ? "Normal" : "Quick"}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <button
+                onClick={aloud.toggle}
+                aria-pressed={aloud.on}
+                aria-label={aloud.on ? "Turn read-aloud off" : "Read this book aloud"}
+                className="grid h-11 w-11 place-items-center rounded-full bg-black/40 text-white/80 backdrop-blur transition-colors hover:text-white"
+              >
+                {aloud.on ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+              </button>
+            </div>
           )}
         </div>
 
         {/* COVER */}
         {stage === "cover" && (
           <div className="absolute inset-0 animate-fade-in">
-            {/* Tapping the cover art itself begins the story (not just the button). */}
             <button
               aria-label={resumeAt === null ? "Start reading" : "Keep reading"}
               onClick={() => setIndex(resumeAt ?? 0)}
@@ -259,12 +349,12 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
               >
                 {resumeAt === null ? "Start Reading" : `Keep Reading · page ${resumeAt + 1}`}
               </button>
-              {/* Only offered when there is a place to come back to, so the cover of an
-                  unread book stays a single, obvious button. */}
+              {/* Only offered when there is a place to come back to, so the cover
+                  of an unread book stays a single, obvious button. */}
               {resumeAt !== null && (
                 <button
                   onClick={() => setIndex(0)}
-                  className="pointer-events-auto relative z-40 mt-3 rounded-full px-4 py-2 text-xs text-white/70 underline underline-offset-4 transition-colors hover:text-white"
+                  className="pointer-events-auto relative z-40 mt-3 min-h-11 rounded-full px-4 text-xs text-white/70 underline underline-offset-4 transition-colors hover:text-white"
                 >
                   Start from the beginning
                 </button>
@@ -276,19 +366,25 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
           </div>
         )}
 
-        {/* PAGE — illustration on top, warm parchment text panel below. */}
+        {/* PAGE — illustration on top, warm parchment text panel below.
+            The two panels are NOT keyed on the page number: the text panel is
+            the surface the type size is measured against, and remounting it on
+            every turn would re-measure all thirteen pages every time. The key
+            sits on the image and the prose, which is what needs to re-animate. */}
         {stage === "page" && page && (
-          <div key={page.page} className="absolute inset-0 flex flex-col bg-[#f4e9d6] animate-fade-in">
-            {/* Illustration region (top). object-cover fills the region edge-to-edge for a bold
-                full-bleed look. Note: cover crops tall 9:16 art to fit, so keep important subject
-                matter centered with margin when authoring/generating pages. */}
-            <div className="relative min-h-0 flex-[9] overflow-hidden bg-black">
+          <div className="absolute inset-0 flex flex-col bg-[#f4e9d6]">
+            {/* object-cover fills the region edge-to-edge for a bold full-bleed
+                look, which CROPS tall art — so pages are generated with the
+                subject centred and generous margin. See reader-layout.md. */}
+            <div
+              key={page.page}
+              className="relative min-h-0 flex-[9] overflow-hidden bg-black animate-fade-in"
+            >
               {page.art ? (
                 <Image
                   src={`/${page.art}`}
-                  /* In a picture book the illustration carries half the story, so an empty
-                     alt hands a child using a screen reader half a book. describePage()
-                     falls back to the manifest the page was generated from. */
+                  /* In a picture book the illustration carries half the story, so
+                     an empty alt hands a child using a screen reader half a book. */
                   alt={describePage(page)}
                   fill
                   priority
@@ -300,48 +396,51 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
                   <span className="text-sm">illustration pending</span>
                 </div>
               )}
-
-              {/* soft blend into the parchment panel */}
               <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[#f4e9d6] to-transparent" />
             </div>
 
-            {/* Text panel (bottom): warm paper, serif. Text auto-fits — always large, never scrolls.
-                Extra bottom padding keeps prose clear of the on-screen controls. */}
-            <div className="relative z-20 flex-[11] overflow-hidden bg-[#f4e9d6] px-6 pt-5 pb-20">
-              <AutoFitText text={page.text} />
+            {/* min-h-0 is load-bearing. Without it this panel's min-height is
+                content-based, so a long page made the panel GROW past its 11/20
+                share, squeezing the illustration and still clipping the last
+                line. The split is fixed now and the type is fitted to it. */}
+            <div
+              ref={setBox}
+              className="relative z-20 flex min-h-0 flex-[11] items-center justify-center overflow-hidden bg-[#f4e9d6] px-6 pb-20 pt-5"
+            >
+              <PageText
+                key={page.page}
+                segments={segments}
+                speaking={aloud.on ? aloud.speaking : -1}
+                size={size}
+              />
+
+              {/* The measuring surface. It overlays the real panel and carries
+                  the same padding, so the probe wraps at exactly the width the
+                  prose will, and the panel itself is what gets measured. A
+                  separate clone with hand-computed height came out 45px short of
+                  the truth and sized every book's type a step too small.
+                  Its content is written imperatively, one page at a time. */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden px-6 pb-20 pt-5 opacity-0"
+              >
+                <p
+                  ref={probeRef}
+                  className="mx-auto max-w-md whitespace-pre-line text-pretty font-serif"
+                  style={{ lineHeight: 1.45 }}
+                />
+              </div>
             </div>
           </div>
         )}
 
         {/* END */}
         {stage === "end" && (
-          <div className="absolute inset-0 grid place-items-center bg-background animate-fade-in">
-            <div className="flex flex-col items-center px-8 text-center">
-              <p className="font-serif text-3xl font-medium text-foreground">The End</p>
-              <p className="mt-3 max-w-xs text-sm text-muted-foreground">
-                {book.title}
-              </p>
-              <div className="mt-8 flex flex-col items-center gap-3">
-                <button
-                  onClick={restart}
-                  className="inline-flex items-center gap-2 rounded-full bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground transition-transform active:scale-95"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                  Read Again
-                </button>
-                <Link
-                  href="/"
-                  className="text-sm text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
-                >
-                  Back to Storylands
-                </Link>
-              </div>
-            </div>
+          <div className="absolute inset-0 overflow-y-auto bg-background animate-fade-in">
+            <EndCard book={book} slug={bookSlug} onRestart={restart} />
           </div>
         )}
 
-        {/* On-screen controls — visible, large touch targets. Tap zones + swipe still work;
-            these give an obvious, discoverable way to turn pages on mobile. */}
         {stage === "page" && (
           <div className="pointer-events-none absolute inset-x-0 bottom-0 z-40 flex items-center justify-between px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-10 bg-gradient-to-t from-black/50 to-transparent">
             <button
@@ -372,50 +471,85 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
 }
 
 /**
- * Read the page aloud using the browser's own speech synthesis.
+ * The last page.
  *
- * No audio files and no API: a four-year-old who can't read yet can open any of
- * these books alone, and it costs nothing to serve. The voice is whatever the
- * device has, which is worse than a recorded narrator and available today for
- * every page of every book.
- *
- * The button is hidden entirely where the API is missing, rather than shipping a
- * control that does nothing.
+ * It used to offer Read Again and a link back to the shelf, which is a dead end
+ * at the exact moment a child is most willing to start another book. Now it hands
+ * over the next one by cover.
  */
-function useReadAloud(text: string | null) {
-  const [supported, setSupported] = useState(false)
-  const [on, setOn] = useState(false)
+function EndCard({
+  book,
+  slug,
+  onRestart,
+}: {
+  book: Book
+  slug: string
+  onRestart: () => void
+}) {
+  const next = useMemo(() => nextBookAfter(slug), [slug])
 
-  useEffect(() => {
-    setSupported(typeof window !== "undefined" && "speechSynthesis" in window)
-  }, [])
+  return (
+    <div className="flex min-h-full flex-col items-center justify-center px-8 py-16 text-center">
+      <p className="font-serif text-3xl font-medium text-foreground">The End</p>
+      <p className="mt-3 max-w-xs text-sm text-muted-foreground">{book.title}</p>
 
-  // Speak the current page whenever it changes while read-aloud is on. Cancel first:
-  // turning pages faster than the voice can talk must not queue up a backlog of
-  // pages nobody is looking at any more.
-  useEffect(() => {
-    if (!supported || !on || !text) return
-    const synth = window.speechSynthesis
-    synth.cancel()
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.rate = 0.85 // a little slower than default; this is being read to a child
-    utterance.pitch = 1.05
-    synth.speak(utterance)
-    return () => synth.cancel()
-  }, [supported, on, text])
+      {next && (
+        <div className="mt-10 w-full max-w-[240px]">
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+            Read next
+          </p>
+          <Link
+            href={`/read/${next.readerSlug}`}
+            className="group block"
+            aria-label={`Read ${next.title}`}
+          >
+            <div className="relative aspect-[9/16] overflow-hidden rounded-lg ring-1 ring-border transition-all group-hover:ring-primary/60">
+              <Image
+                src={next.portrait || next.landscape}
+                alt={next.title}
+                fill
+                sizes="240px"
+                className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+            </div>
+            <p className="mt-3 font-serif text-lg leading-tight text-foreground">{next.title}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{next.minutes} min</p>
+          </Link>
+        </div>
+      )}
 
-  // Leaving the book mid-sentence must not leave a voice talking over the library.
-  useEffect(() => {
-    if (!supported) return
-    return () => window.speechSynthesis.cancel()
-  }, [supported])
+      <div className="mt-10 flex flex-col items-center gap-3">
+        <button
+          onClick={onRestart}
+          className="inline-flex min-h-11 items-center gap-2 rounded-full bg-white/10 px-6 text-sm font-semibold text-foreground ring-1 ring-border transition-transform active:scale-95"
+        >
+          <RotateCcw className="h-4 w-4" />
+          Read {book.title.split(" ")[0]} again
+        </button>
+        <Link
+          href="/"
+          className="min-h-11 px-4 text-sm leading-[2.75rem] text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
+        >
+          Back to Storylands
+        </Link>
+      </div>
+    </div>
+  )
+}
 
-  const toggle = useCallback(() => {
-    setOn((v) => {
-      if (v && typeof window !== "undefined") window.speechSynthesis.cancel()
-      return !v
-    })
-  }, [])
-
-  return { supported, on, toggle }
+/**
+ * The next readable book after this one, by catalog order, wrapping around.
+ *
+ * Catalog order rather than "most similar": with seven books, similarity scoring
+ * is a dressed-up way of always suggesting the same two. Returns nothing when
+ * this is the only book, so the card never offers a child the book they just
+ * finished as the next one.
+ */
+function nextBookAfter(slug: string): Story | undefined {
+  const readable = stories.filter((s) => s.readerSlug)
+  if (readable.length < 2) return undefined
+  const at = readable.findIndex((s) => s.readerSlug === slug)
+  if (at < 0) return readable[0]
+  return readable[(at + 1) % readable.length]
 }

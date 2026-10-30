@@ -16,18 +16,33 @@ serves that.
 2. TEXT ALWAYS FITS ITS PANEL WITH NO SCROLLING.
    On every page, on every phone size, the full page text must be visible at once. The reader
    NEVER scrolls to read a page. This is enforced two ways and both must hold:
-   - Runtime: the text panel auto-fits — it renders the prose as large as possible and steps
-     the font size down only as far as needed to fit (down to a readable floor). See
-     AutoFitText in components/book-reader.tsx (preferred ~34px phone, floor ~17px).
-     It **binary searches** the range rather than walking down a pixel at a time: each probe
-     reads `scrollHeight` and forces a synchronous layout, so the old loop cost up to 40
-     reflows on every page turn. A larger font never fits better, so halving finds the same
-     answer in five. It also re-fits on resize — rotating a phone halves the panel height,
-     and without that the prose kept the portrait size and overflowed.
-     When it finishes, it leaves the winning size **on the node as well as in state**. Clearing
-     the inline style and relying on the re-render fails silently whenever the new size equals
-     the old one: React sees no change, restores nothing, and the prose drops to the
-     stylesheet's 16px. That shipped for about an hour; a browser check caught it.
+   - Runtime: `useBookTextSize` in components/book-reader.tsx picks **one size for the whole
+     book** (preferred 34px, floor 17px) and every page is read at it. Measured once per book
+     by probing **every page** and taking the smallest winner, because the longest page is
+     the binding constraint and nothing else is.
+     Things that were wrong here, all of which a browser check caught and none of which a
+     unit test could:
+     - **It must measure every page, not the one with the most characters.** Rendered height
+       comes from how the prose WRAPS and from the blank line between paragraphs. Pip's page
+       1 is shorter than his page 13 and two lines taller, because it is two paragraphs.
+     - **The text panel needs `min-h-0`.** Without it the panel's min-height is content-based,
+       so a long page made the panel GROW past its 11/20 share, squeezing the illustration,
+       and `overflow-hidden` quietly clipped the last line. 158 page/viewport combinations
+       were overflowing this way while the code reported a confident 34px.
+     - **The measuring surface must overlay the real panel.** A standalone clone with
+       hand-computed height came out 45px short of the truth and sized the type a step small.
+     - **Use a callback ref for it.** The panel does not exist on the cover, so an effect
+       keyed on anything else runs while the ref is null, bails, and never runs again.
+     - **Don't key the text panel on the page number.** Remounting it per turn would
+       re-measure all thirteen pages on every page turn. The key belongs on the image and
+       the prose, which is what needs to re-animate.
+     - It binary searches rather than stepping down a pixel at a time: a larger font never
+       fits better, so halving finds the same answer in five layout reads instead of forty.
+     - It re-fits on resize via ResizeObserver; rotating a phone changes the panel height.
+   - **One size per book means the longest page sets the type for every page.** Nibs reads at
+     24px on a phone because one of its pages is 45 words. That is a content problem, not a
+     mechanism problem — `validate-book.mjs` warns when a book's word counts span more than
+     20, and evening the pages out is what makes the whole book bigger.
    - Authoring: pages are written SHORT enough that they fit at a large, comfortable size
      without shrinking to the floor. Auto-fit is a safety net, not a license to overwrite
      long pages. If a page has to shrink noticeably to fit, the page text is too long — split

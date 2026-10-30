@@ -1,6 +1,8 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import { Fraunces, Geist } from 'next/font/google'
+import { ReaderProvider } from '@/components/providers/reader-provider'
+import { ServiceWorker } from '@/components/providers/service-worker'
 import './globals.css'
 
 const fraunces = Fraunces({
@@ -60,7 +62,8 @@ export default function RootLayout({
       className={`${fraunces.variable} ${geist.variable} bg-background`}
     >
       <body className="antialiased">
-        {children}
+        <ReaderProvider>{children}</ReaderProvider>
+        <ServiceWorker />
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

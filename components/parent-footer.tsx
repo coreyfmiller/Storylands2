@@ -1,4 +1,5 @@
 import { Logo } from "@/components/logo"
+import { MAX_AGE, MIN_AGE } from "@/lib/readers"
 
 export function ParentFooter() {
   return (
@@ -33,35 +34,25 @@ export function ParentFooter() {
 
       <footer className="border-t border-border bg-background px-4 py-12 sm:px-6 lg:px-10">
         <div className="mx-auto flex max-w-6xl flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
-          <div className="max-w-xs">
+          <div className="max-w-sm">
             <Logo />
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              A premium destination for interactive illustrated fiction, for
-              readers of every age.
+              Original illustrated picture books for ages {MIN_AGE} to {MAX_AGE}, read a page
+              at a time.
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-x-12 gap-y-2 sm:grid-cols-3">
-            {footerCols.map((col) => (
-              <nav key={col.heading} className="flex flex-col gap-2">
-                <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-foreground/70">
-                  {col.heading}
-                </p>
-                {col.links.map((l) => (
-                  <a
-                    key={l}
-                    href="#top"
-                    className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    {l}
-                  </a>
-                ))}
-              </nav>
-            ))}
+          {/* There were eleven links here across three columns — Discover, Ages,
+              Storylands — and every one of them pointed at #top. Eleven controls
+              that looked like a site map for a site with one page. */}
+          <div className="max-w-sm text-sm leading-relaxed text-muted-foreground">
+            <p>
+              Everything is stored on this device. No account, no sign-in, and nothing about
+              your child is sent anywhere.
+            </p>
           </div>
         </div>
         <p className="mx-auto mt-10 max-w-6xl text-xs text-muted-foreground/60">
-          © {new Date().getFullYear()} Storylands. A prototype for interactive
-          illustrated fiction.
+          © {new Date().getFullYear()} Storylands.
         </p>
       </footer>
     </>
@@ -83,8 +74,4 @@ const promises = [
   },
 ]
 
-const footerCols = [
-  { heading: "Discover", links: ["Stories", "Series", "New This Week", "Genres"] },
-  { heading: "Ages", links: ["5–7", "8–10", "11–13", "14–16"] },
-  { heading: "Storylands", links: ["For Families", "For Schools", "About", "Support"] },
-]
+

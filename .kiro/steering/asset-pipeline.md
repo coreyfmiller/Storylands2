@@ -91,3 +91,110 @@ Read-aloud uses the browser's own `speechSynthesis`: no audio files, no API, and
 a four-year-old who can't read yet can open any of these books alone. The button
 is hidden entirely where the API is missing — never ship a control that does
 nothing.
+
+## The authoring engine
+
+`scripts/create-book.mjs` writes a book from a premise. `node scripts/doctor.mjs`
+says whether it can run right now and what to fix if not.
+
+```
+node scripts/create-book.mjs --character pip --premise "..."   # writes books/<slug>/book.ts
+node scripts/generate-book.mjs --book <slug>                   # slow, paid
+node scripts/optimize-books.mjs --prune                        # required, not optional
+```
+
+**One source per book.** `books/<slug>/book.ts` holds the prose AND the
+illustration manifests, and both the app and the generator import it. There used
+to be a second copy in `pages.mjs` for the generator, because Node could not read
+TypeScript; `book-production.md` called the duplication deliberate and said to
+keep the two in sync by hand. Three of the seven books had drifted across nine
+manifest fields, which meant the alt text a screen reader announced described a
+different picture than the prompt that drew it. Node 24 strips types, so the
+second copy is gone. Imports inside the book files carry an explicit `.ts`
+extension — Node's resolver needs it, and `allowImportingTsExtensions` lets
+TypeScript accept the same spelling. **Do not reintroduce a generation-side copy
+of anything.**
+
+### The validator is the product standard, executable
+
+`scripts/lib/validate-book.mjs` is the single definition of "acceptable", used by
+the authoring engine, `generate-book.mjs` (before spending anything) and
+`audit-text.mjs`. Errors block; warnings are for a human.
+
+When a book fails, the engine hands the model the numbered list of failures and
+asks for a repair rather than a re-roll, so a 52-word page gets fixed and the
+plot survives. Three passes, then it refuses to write anything.
+
+Two rules worth knowing before editing it:
+
+- **Text-only props are refused; wordless ones are allowed when declared.** A
+  menu or a signpost exists only to be read. A map can be pictograms — Nibs page
+  5 is a treasure map drawn in acorns and arrows with not one letter on it, and
+  it is the best page in that book. An earlier version of this check called that
+  page a violation. Props that *can* be wordless need the manifest to say so.
+- **Warnings must never block.** A 46-word page is outside the comfortable band
+  and well inside the ceiling. Refusing it would make the engine unusable.
+
+What it cannot judge is whether the story is any good. That stays human, which
+is the whole reason the mechanical rules should cost a human no attention.
+
+### Providers
+
+`scripts/lib/provider.mjs` wraps Gemini and OpenAI behind one interface, chosen
+by `--provider` or by whichever key is set. Gemini is the default and
+`gemini-flash-latest` is the workspace standard: a self-updating alias, so the
+model string never needs migrating. Image generation is the one sanctioned
+reason to pin something else, because it needs that capability tier.
+
+`mock` is a third real provider, not a leftover test stub. It runs the entire
+pipeline — schema, validation, repair loop, emitter, registration — with no
+network and no spend, which is the only thing keeping those parts honest when
+the accounts are dry. They were dry the day this was written: the OpenAI key had
+expired and the Gemini project was out of prepayment credit. Its prose is
+placeholder and says so in capitals, because the one unforgivable outcome is
+mock text reaching a child.
+
+### Registration is automatic and must stay idempotent
+
+`scripts/lib/register-book.mjs` adds the book to `books/index.ts` and
+`lib/catalog.ts`. Three cases, and the first version of it confused two of them
+and replaced "Pip and the First Flame" with a test fixture:
+
+- a coming-soon entry for that character exists → fill it in, keeping the
+  hand-written hook, synopsis, genres and colours, which are editorial work
+- that character already has a published book → add a sibling entry
+- the character is new → insert a fresh entry
+
+**Never overwrite an entry that has a `readerSlug`.**
+
+## Readers, and the end of the four fictional children
+
+`components/providers/reader-provider.tsx` is the single source for who is
+reading; `lib/readers.ts` holds the pure logic and the one validator both the
+form and the provider use. Device-local, like progress: no account, and nothing
+about a child leaves the browser.
+
+Four children used to be hardcoded in `lib/catalog.ts` — Avery 6, Maya 10, Leo
+13, Alex 16 — and the profile menu admitted it: "switch profiles to see how
+Storylands surfaces different stories". Two of them could open nothing at all,
+because every book is for ages 4 to 7. The catalog functions take `Band[]` now
+rather than a whole `Profile`, so nothing in the app needs a person to exist in
+order to filter a shelf.
+
+The avatar is an initial on a colour, not a character cover. Using Pip's face as
+a stand-in photo quietly told a child that Pip was them.
+
+## The shelf states what it has
+
+Twelve of nineteen catalog entries had no book: full covers, hooks and synopses,
+each one opening "we're still illustrating this one". They are in
+`docs/STUDIO_SLATE.md` now, as premises the engine can turn into real books.
+
+`series` counts are **counted, not written down**. The hand-written numbers
+claimed Juniper had 3 books, Grey Point 5 and Black River 3; each had one
+catalog entry and no book anybody could open. A series with fewer than two
+readable books is left out rather than shown as a shelf of one.
+
+`moodFilters` is filtered against the catalog for the same reason. It used to
+offer Mystery, Suspense and "Under 30 min" to a four-year-old, all of which
+returned nothing — a filter that tells a child their search is broken.
