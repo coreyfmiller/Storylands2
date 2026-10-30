@@ -16,7 +16,7 @@
 // Bump VERSION on any change here. Old caches are deleted on activate, so a
 // stale asset cannot outlive a deploy.
 
-const VERSION = 'v1'
+const VERSION = 'v2'
 const SHELL = `storylands-shell-${VERSION}`
 const MEDIA = `storylands-media-${VERSION}`
 const KEEP = [SHELL, MEDIA]
@@ -49,8 +49,12 @@ self.addEventListener('activate', (event) => {
 })
 
 function isMedia(request, url) {
-  if (request.destination === 'image' || request.destination === 'font') return true
-  return /\.(webp|png|jpg|jpeg|svg|woff2?)$/i.test(url.pathname)
+  const d = request.destination
+  if (d === 'image' || d === 'font' || d === 'audio') return true
+  // Narration audio and its manifest are immutable per deploy and are the
+  // difference between a book working on a plane and not.
+  return /\.(webp|png|jpg|jpeg|svg|woff2?|mp3|m4a|ogg)$/i.test(url.pathname)
+    || /\/audio\/narration\.json$/.test(url.pathname)
 }
 
 self.addEventListener('fetch', (event) => {

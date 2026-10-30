@@ -167,3 +167,34 @@
     transition-duration: 0.001ms !important;
   }
 }
+
+/* A phone held sideways.
+ *
+ * The reader stages a 9:16 column, so at 844x390 that column is 219px wide and
+ * the text panel gets 114px of usable height — the type hit its 17px floor and
+ * the prose still did not fit, which is the one rule the reader exists to keep.
+ * Measured, not guessed: see the viewport audit in the commit that added this.
+ *
+ * So a short landscape viewport gets a SPREAD instead: picture on the left,
+ * words on the right, which is what a real picture book does when it is wider
+ * than it is tall. Scoped by height as well as orientation, because a desktop
+ * is also landscape and the letterboxed column is deliberate there.
+ */
+@media (orientation: landscape) and (max-height: 560px) {
+  .reader-stage {
+    max-width: min(100vw, calc(100svh * 16 / 9));
+  }
+  .reader-page {
+    flex-direction: row;
+  }
+  .reader-art {
+    flex: 11 1 0%;
+  }
+  .reader-text {
+    flex: 9 1 0%;
+    /* The page controls sit along the bottom of the whole stage, so the right
+     * column still has to clear them — but it has far more height to spend. */
+    padding-top: 1rem;
+    padding-bottom: 4.5rem;
+  }
+}

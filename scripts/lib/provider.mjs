@@ -233,7 +233,12 @@ async function openaiJSON({ system, user, schema, maxOutputTokens }) {
  * the portrait option and is what drew all 93 existing pages; the reader crops
  * to 9:16 anyway, which is why page composition is briefed with margin.
  */
-const OPENAI_SIZES = { '9:16': '1024x1536', '2:3': '1024x1536', '1:1': '1024x1024' }
+const OPENAI_SIZES = {
+  '3:2': '1536x1024',
+  '9:16': '1024x1536',
+  '2:3': '1024x1536',
+  '1:1': '1024x1024',
+}
 
 async function openaiImage({ prompt, referencePaths, aspectRatio = '9:16' }) {
   const form = new FormData()

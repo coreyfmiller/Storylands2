@@ -11,6 +11,7 @@
 // transcription aimed at a model. When they change, change this.
 
 import { validateBook, WORD_CEILING, WORD_TARGET_MIN, WORD_TARGET_MAX, PARAGRAPH_CEILING, MIN_PAGES, MAX_PAGES } from './validate-book.mjs'
+import { SHOT_KEYS, SHOT_TYPES, MAX_CONSECUTIVE, minimumDistinctShots } from './shot-types.mjs'
 
 const SYSTEM = `You are a leading author of children's picture books for ages 4 to 7, writing for Storylands. You write warm, specific, funny, tender prose that a parent is happy to read aloud a second time. You never write anything generic, preachy, or that sounds machine-made.
 
@@ -40,6 +41,20 @@ PROSE RULES (these are measured, and a book that breaks them is rejected):
 - Keep page lengths close to each other. The reader sizes type to fit, so uneven pages make the text jump size between turns, which feels cheap.
 - Read it aloud in your head. Rhythm matters more than vocabulary.
 
+HOW THE PAGES ARE FRAMED. Every page declares a shotType, and the book has to look like a book rather than thirteen versions of the same photograph. The options:
+${SHOT_KEYS.map((k) => `- ${k}: ${SHOT_TYPES[k]}`).join('\n')}
+- Never more than ${MAX_CONSECUTIVE} of the same shotType in a row.
+- Use at least ${minimumDistinctShots(13)} different ones across the book.
+- Match the shot to the beat: an establishing or wide shot to open, close shots for the moments that turn on a face, a detail shot when the object matters, twoShot when two characters are really together, high angle when the character feels small, low angle when they feel big. Do not just rotate through the list — choose each one.
+
+HOW THE PAGES ARE CAST. A supporting character must have pages they are ABSENT from, or their arrival cannot land. The friend who asks the puncturing question needs to arrive. Vary how many characters are in frame.
+
+PROSE TEXTURE:
+- Do not start more than three pages with the same word. Starting five pages with the protagonist's name is a tic a reader hears.
+- Every page needs a different emotionalBeat. A flat arc is thirteen pages of "determined".
+- The book should move through at least three distinct locations.
+- No two pages should use the same shape of joke.
+
 ILLUSTRATION RULES (also measured):
 - Illustrations are ALWAYS TEXTLESS. No words, letters, numbers or titles in the picture, ever. All words live in the reader's text panel.
 - Never stage a prop that only exists to be read: no sign, signpost, placard, plaque, poster, nameplate, menu, newspaper, price tag. Not even a blank one — a blank board looks like the art broke. Re-stage the beat wordlessly instead.
@@ -63,6 +78,7 @@ const manifestSchema = {
     'requiredVisualFacts',
     'forbiddenVisualFacts',
     'composition',
+    'shotType',
   ],
   properties: {
     charactersPresent: {
@@ -77,6 +93,11 @@ const manifestSchema = {
     requiredVisualFacts: { type: 'array', items: { type: 'string' } },
     forbiddenVisualFacts: { type: 'array', items: { type: 'string' } },
     composition: { type: 'string' },
+    shotType: {
+      type: 'string',
+      enum: SHOT_KEYS,
+      description: 'How this page is framed. Vary it across the book.',
+    },
   },
 }
 
@@ -167,6 +188,7 @@ function normalise(raw, { slug, character }) {
       requiredVisualFacts: p?.manifest?.requiredVisualFacts ?? [],
       forbiddenVisualFacts: p?.manifest?.forbiddenVisualFacts ?? [],
       composition: p?.manifest?.composition ?? '',
+      shotType: p?.manifest?.shotType,
     },
   }))
   return {

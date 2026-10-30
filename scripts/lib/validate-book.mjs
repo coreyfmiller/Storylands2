@@ -10,6 +10,8 @@
 // an ending lands. Those stay human, which is exactly why the mechanical rules
 // should never cost a human any attention.
 
+import { SHOT_KEYS, MAX_CONSECUTIVE, minimumDistinctShots } from './shot-types.mjs'
+
 /** reader-layout.md: target ~35 words, comfortable band 18-45, hard ceiling 50. */
 export const WORD_CEILING = 50
 export const WORD_TARGET_MIN = 18
@@ -30,6 +32,15 @@ const MANIFEST_FIELDS = [
   'forbiddenVisualFacts',
   'composition',
 ]
+
+/**
+ * Sentence openers that read as a tic when a book leans on them.
+ *
+ * Not banned — "Then" and "But" are good picture-book words. The rule is about
+ * frequency: four pages in a row starting "Then" is a rhythm problem a reader
+ * hears immediately, even if no single page is wrong.
+ */
+const OPENER_LIMIT = 3
 
 /**
  * Props that exist only to be read. visual-consistency.md bans these outright:
@@ -205,6 +216,105 @@ export function validateBook({ book, refs = {}, bios = {} }) {
 
   for (const c of Object.keys(refs)) {
     if (!bios[c]) warnings.push(`character "${c}" has a reference but no CHARACTER_BIOS line`)
+  }
+
+  // ---- how the pages are FRAMED -----------------------------------------
+  //
+  // Left alone, a character-reference pipeline draws a centred mid-shot of the
+  // protagonist thirteen times. Each page is fine and the book reads flat.
+  const shots = pages.map((p) => p.manifest?.shotType)
+  const haveShots = shots.filter(Boolean).length
+
+  if (haveShots === 0) {
+    // The first seven books predate shotType, so its absence is a warning for
+    // them and an error for anything that has started using it.
+    warnings.push('no page declares a shotType, so nothing is varying the framing')
+  } else {
+    if (haveShots < pages.length) {
+      errors.push(
+        `${pages.length - haveShots} page(s) have no shotType while others do — either all or none`,
+      )
+    }
+    for (const [i, shot] of shots.entries()) {
+      if (shot && !SHOT_KEYS.includes(shot)) {
+        errors.push(`page ${i + 1}: unknown shotType "${shot}". One of: ${SHOT_KEYS.join(', ')}`)
+      }
+    }
+    let run = 1
+    for (let i = 1; i < shots.length; i++) {
+      if (shots[i] && shots[i] === shots[i - 1]) {
+        run += 1
+        if (run > MAX_CONSECUTIVE) {
+          errors.push(
+            `pages ${i + 2 - run}-${i + 1}: ${run} consecutive "${shots[i]}" shots; at most ${MAX_CONSECUTIVE}`,
+          )
+          run = 1
+        }
+      } else {
+        run = 1
+      }
+    }
+    const distinct = new Set(shots.filter(Boolean)).size
+    const needed = minimumDistinctShots(pages.length)
+    if (distinct < needed) {
+      errors.push(
+        `only ${distinct} distinct shot types across ${pages.length} pages; use at least ${needed}`,
+      )
+    }
+  }
+
+  // ---- how the pages are CAST -------------------------------------------
+  const castSizes = pages.map((p) => (p.manifest?.charactersPresent ?? []).length)
+  const supporting = Object.keys(refs).filter((c) => c !== book.character)
+  for (const c of supporting) {
+    const appearances = pages.filter((p) =>
+      (p.manifest?.charactersPresent ?? []).includes(c),
+    ).length
+    if (appearances === 0) {
+      warnings.push(`"${c}" has reference art available but never appears`)
+    } else if (appearances === pages.length) {
+      // A friend who is simply always there cannot arrive, and the spine turns
+      // on them arriving to ask the question.
+      warnings.push(
+        `"${c}" is on every page; a supporting character needs pages they are absent from for their arrival to land`,
+      )
+    }
+  }
+  if (castSizes.length > 2 && new Set(castSizes).size === 1 && supporting.length > 0) {
+    warnings.push('every page has the same number of characters; the frame never opens or closes')
+  }
+
+  // ---- prose texture ----------------------------------------------------
+  const openers = {}
+  for (const p of pages) {
+    const first = String(p.text ?? '')
+      .trim()
+      .split(/\s+/)[0]
+      ?.replace(/[^A-Za-z']/g, '')
+      .toLowerCase()
+    if (first) openers[first] = (openers[first] ?? 0) + 1
+  }
+  for (const [word, n] of Object.entries(openers)) {
+    if (n > OPENER_LIMIT) {
+      warnings.push(`${n} pages open with "${word}"; vary the sentence openings`)
+    }
+  }
+
+  const beats = pages.map((p) => String(p.manifest?.emotionalBeat ?? '').toLowerCase().trim())
+  const distinctBeats = new Set(beats.filter(Boolean)).size
+  if (beats.length >= 12 && distinctBeats < Math.ceil(beats.length * 0.6)) {
+    warnings.push(
+      `only ${distinctBeats} distinct emotional beats across ${beats.length} pages; the arc is flat`,
+    )
+  }
+
+  const locations = new Set(
+    pages.map((p) => String(p.manifest?.location ?? '').toLowerCase().trim()).filter(Boolean),
+  )
+  if (pages.length >= 12 && locations.size < 3) {
+    warnings.push(
+      `only ${locations.size} distinct location(s); the book never changes scene`,
+    )
   }
 
   // Uneven pages now cost the whole book, not just one page.

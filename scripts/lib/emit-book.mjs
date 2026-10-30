@@ -146,6 +146,7 @@ export function emitBookSource({ header, book, refs, bios }) {
     out.push(`        requiredVisualFacts: ${list(m.requiredVisualFacts, 8)},`)
     out.push(`        forbiddenVisualFacts: ${forbidden},`)
     out.push(`        composition: ${str(m.composition)},`)
+    if (m.shotType) out.push(`        shotType: ${str(m.shotType)},`)
     out.push('      },')
     out.push('    },')
   }

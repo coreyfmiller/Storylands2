@@ -30,7 +30,7 @@ import { writeFile, mkdir, access } from 'node:fs/promises'
 import path from 'node:path'
 import { getImageProvider } from './lib/provider.mjs'
 import { loadBook, bookSlugs, manifestsOf, ASSETS_DIR, PUBLIC_DIR } from './lib/book-source.mjs'
-import { compilePrompt } from './lib/compile-prompt.mjs'
+import { compilePrompt, PAGE_ASPECT } from './lib/compile-prompt.mjs'
 import { validateBook } from './lib/validate-book.mjs'
 import { recordPages, wouldMix } from './lib/art-log.mjs'
 import { loadEnv } from './lib/load-env.mjs'
@@ -103,7 +103,11 @@ async function generateOne({ slug, manifest, bios, refs, outDir, provider }) {
   const referencePaths = manifest.charactersPresent.map((c) => path.join(ASSETS_DIR, refs[c]))
 
   try {
-    const { b64 } = await provider.generateImage({ prompt, referencePaths, aspectRatio: '9:16' })
+    const { b64 } = await provider.generateImage({
+      prompt,
+      referencePaths,
+      aspectRatio: PAGE_ASPECT,
+    })
     await writeFile(pngPath, Buffer.from(b64, 'base64'))
     console.log(`  page ${manifest.page}: OK`)
     return { page: manifest.page, status: 'ok' }

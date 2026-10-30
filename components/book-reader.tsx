@@ -6,6 +6,7 @@ import Link from "next/link"
 import { bookCover, describePage, type Book } from "@/books/types"
 import { isResumable, readProgress, recordProgress } from "@/lib/progress"
 import { RATES, segmentsOf, useReadAloud, type Segment } from "@/lib/read-aloud"
+import { useNarration } from "@/lib/narration"
 import { stories, type Story } from "@/lib/catalog"
 import { X, ChevronLeft, ChevronRight, RotateCcw, Volume2, VolumeX } from "lucide-react"
 
@@ -177,7 +178,14 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
     setIndex((i) => (i === index ? Math.min(total, i + 1) : i))
   }, [index, total])
 
-  const aloud = useReadAloud(page?.text ?? null, segments, onNarrationEnd)
+  const { narration } = useNarration(bookSlug)
+  const aloud = useReadAloud(
+    page?.text ?? null,
+    segments,
+    narration,
+    page?.page ?? null,
+    onNarrationEnd,
+  )
 
   // Where this book was left off, read once after mount. Reading localStorage
   // during render would make the server's HTML and the first client paint differ.
@@ -242,7 +250,7 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
       </div>
 
       <div
-        className="relative mx-auto h-full w-full max-w-[calc(100svh*9/16)] touch-pan-y overscroll-none select-none"
+        className="reader-stage relative mx-auto h-full w-full max-w-[calc(100svh*9/16)] touch-pan-y overscroll-none select-none"
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
@@ -312,8 +320,16 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
               <button
                 onClick={aloud.toggle}
                 aria-pressed={aloud.on}
-                aria-label={aloud.on ? "Turn read-aloud off" : "Read this book aloud"}
-                className="grid h-11 w-11 place-items-center rounded-full bg-black/40 text-white/80 backdrop-blur transition-colors hover:text-white"
+                aria-label={
+                  aloud.on
+                    ? "Turn read-aloud off"
+                    : aloud.recorded
+                      ? "Read this book aloud, narrated"
+                      : "Read this book aloud"
+                }
+                className={`grid h-11 w-11 place-items-center rounded-full backdrop-blur transition-colors ${
+                  aloud.on ? "bg-primary text-primary-foreground" : "bg-black/40 text-white/80 hover:text-white"
+                }`}
               >
                 {aloud.on ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
               </button>
@@ -372,13 +388,13 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
             every turn would re-measure all thirteen pages every time. The key
             sits on the image and the prose, which is what needs to re-animate. */}
         {stage === "page" && page && (
-          <div className="absolute inset-0 flex flex-col bg-[#f4e9d6]">
-            {/* object-cover fills the region edge-to-edge for a bold full-bleed
-                look, which CROPS tall art — so pages are generated with the
-                subject centred and generous margin. See reader-layout.md. */}
+          <div className="reader-page absolute inset-0 flex flex-col bg-[#f4e9d6]">
+            {/* The served file is already cropped to this region's exact shape
+                by optimize-books.mjs, so object-cover has nothing left to trim.
+                See READER_ART_ASPECT in books/types.ts. */}
             <div
               key={page.page}
-              className="relative min-h-0 flex-[9] overflow-hidden bg-black animate-fade-in"
+              className="reader-art relative min-h-0 flex-[9] overflow-hidden bg-black animate-fade-in"
             >
               {page.art ? (
                 <Image
@@ -405,7 +421,7 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
                 line. The split is fixed now and the type is fitted to it. */}
             <div
               ref={setBox}
-              className="relative z-20 flex min-h-0 flex-[11] items-center justify-center overflow-hidden bg-[#f4e9d6] px-6 pb-20 pt-5"
+              className="reader-text relative z-20 flex min-h-0 flex-[11] items-center justify-center overflow-hidden bg-[#f4e9d6] px-6 pb-20 pt-5"
             >
               <PageText
                 key={page.page}
@@ -422,7 +438,9 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
                   Its content is written imperatively, one page at a time. */}
               <div
                 aria-hidden
-                className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden px-6 pb-20 pt-5 opacity-0"
+                /* Same padding as the panel it overlays, including the landscape
+                   override, or the measurement is taken against the wrong box. */
+                className="reader-text pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden px-6 pb-20 pt-5 opacity-0"
               >
                 <p
                   ref={probeRef}

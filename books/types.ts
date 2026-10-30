@@ -15,7 +15,31 @@ export type IllustrationManifest = {
   requiredVisualFacts: string[]
   forbiddenVisualFacts: string[]
   composition: string
+  /**
+   * Framing for this page. Optional because the first seven books were written
+   * before it existed; new books are required to carry one.
+   */
+  shotType?: ShotType
 }
+
+/**
+ * How the page is framed.
+ *
+ * Without this, nothing asked the illustrations to vary, and a
+ * character-reference pipeline left to itself produces a centred mid-shot of the
+ * protagonist thirteen times. See scripts/lib/shot-types.mjs for what each means
+ * and the variance rules the validator enforces.
+ */
+export type ShotType =
+  | 'establishing'
+  | 'wide'
+  | 'mid'
+  | 'close'
+  | 'detail'
+  | 'low'
+  | 'high'
+  | 'overShoulder'
+  | 'twoShot'
 
 export type BookPage = {
   page: number
@@ -51,6 +75,25 @@ export type Book = {
  * book a 29 MB download on a phone — see scripts/optimize-books.mjs.
  */
 export const PAGE_EXT = 'webp'
+
+/**
+ * The shape of the illustration region in the reader, as width / height.
+ *
+ * Derived, not guessed: the reading stage is 9:16, and the picture takes
+ * `flex-[9]` of a `9 + 11` column, so the region is 9/20 of the stage height.
+ *   (9/16) / (9/20) = 1.25
+ *
+ * This number matters a great deal. The image model returns 1024x1536, which is
+ * 0.667 — so displaying it with `object-cover` in a 1.25 region showed only the
+ * central 53% of the picture and discarded the other 47%. Every page was paid
+ * for in full and cropped in half.
+ *
+ * scripts/optimize-books.mjs now crops to exactly this ratio at build time,
+ * choosing the crop around the subject, so the file the browser downloads IS
+ * what the child sees and `object-cover` has nothing left to do. Change this and
+ * you must re-run the converter with --force.
+ */
+export const READER_ART_ASPECT = 9 / 16 / (9 / 20)
 
 /** Where a book's page illustration lives, relative to /public. */
 export function pageArt(slug: string, page: number) {

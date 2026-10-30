@@ -9,15 +9,35 @@
  * actually carried by the reference images — this reinforces it and enforces the
  * two rules the model most likes to break.
  */
+/**
+ * The shape page art is generated at.
+ *
+ * LANDSCAPE, which contradicts what visual-consistency.md used to say. That file
+ * called for a 9:16 portrait master, on the assumption that the reader shows the
+ * picture full-bleed at 9:16. It does not: the picture occupies the top 9/20 of
+ * a 9:16 stage, which is a region 1.25 times wider than it is tall.
+ *
+ * Measured consequences of getting this wrong:
+ *   portrait 1024x1536 (0.667) cropped to 1.25 -> 47% of the HEIGHT discarded,
+ *                                                 which is where heads are
+ *   landscape 1536x1024 (1.50) cropped to 1.25 -> 17% of the WIDTH discarded,
+ *                                                 which is side background
+ *
+ * So pages are briefed and generated wide.
+ */
+export const PAGE_ASPECT = '3:2'
+
 export const STYLE = [
   'Warm, hand-crafted storybook illustration for a childrens picture book (ages 4-7).',
   'Rich but gentle color, soft natural light, expressive and characterful.',
-  'Full-bleed vertical 9:16 composition.',
-  // The reader shows page art full-bleed with object-cover, which CROPS the edges.
-  'CRITICAL FRAMING: the image will be displayed cropped to fill, so keep the main subject and ALL important detail (heads, ears, faces, paws, the key action) well within a centered safe area with generous margin and headroom on every side. Never place anything important near the top, bottom, or side edges. Leave comfortable empty space / background around the subject so nothing important is lost if the edges are cropped. Do not fill the frame edge-to-edge with the subject.',
+  'Full-bleed HORIZONTAL composition, wider than it is tall, like the picture across the top of a picture-book page.',
+  // Only the sides are trimmed, so that is the only place margin is needed.
+  'CRITICAL FRAMING: a narrow strip will be trimmed from the LEFT and RIGHT edges, so keep the subject and all important detail (heads, ears, faces, paws, the key action) clear of the left and right edges, with background to spare on both sides. Use the full height of the frame: the top and bottom are NOT trimmed, so heads do not need extra headroom. Do not place anything important hard against a side edge.',
   'IMPORTANT: absolutely NO text, letters, words, numbers, titles, or signage lettering anywhere in the image.',
   'Keep every character EXACTLY on-model with its provided reference image: same species, same fur/feather color and pattern, same eyes, same proportions, same apparent age.',
 ].join(' ')
+
+import { framingFor } from './shot-types.mjs'
 
 const ORDINALS = ['FIRST', 'SECOND', 'THIRD', 'FOURTH', 'FIFTH']
 
@@ -44,6 +64,7 @@ function castSentence(cast, bios) {
  */
 export function compilePrompt(manifest, bios = {}) {
   const m = manifest
+  const framing = framingFor(m.shotType)
   return [
     STYLE,
     castSentence(m.charactersPresent, bios),
@@ -52,8 +73,13 @@ export function compilePrompt(manifest, bios = {}) {
     `Mood: ${m.emotionalBeat}.`,
     `Must include: ${m.requiredVisualFacts.join('; ')}.`,
     `Must NOT include: ${m.forbiddenVisualFacts.join('; ')}.`,
+    // Framing before composition, because the shot type is the stronger
+    // instruction and the composition note refines it.
+    framing ? `Framing: ${framing}.` : '',
     `Composition: ${m.composition}.`,
-  ].join(' ')
+  ]
+    .filter(Boolean)
+    .join(' ')
 }
 
 /**

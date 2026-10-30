@@ -1,20 +1,22 @@
 "use client"
 
-// Read-aloud, with the words it is saying marked on the page.
+// Read-aloud, with the sentence being spoken marked on the page.
 //
-// The first version was a robot voice with no connection to the picture book it
-// was reading: nothing on screen moved, so a child who cannot read yet had no
-// idea which part was being said. Highlighting the current sentence is the whole
-// point — following along is how following along is learned.
+// Two sources, in order of preference:
 //
-// Web Speech gives us `boundary` events carrying a character offset into the
-// text, which is enough to find the sentence being spoken. Support for those
-// events is uneven (Safari fires them sparsely, some Android voices not at all),
-// so the highlight is treated as a bonus and never as a precondition: if no
-// boundary ever arrives, the whole page simply stays unhighlighted and the voice
-// still works.
+//   1. A RECORDED narrator (scripts/narrate-book.mjs). A directed female voice,
+//      identical on every device, with exact sentence timings from a word-level
+//      transcript. This is the one that sounds like a person.
+//   2. The browser's own speechSynthesis, as a fallback for books that have not
+//      been narrated yet. It hands a child whatever voice the device has —
+//      robotic on most Androids, Siri on an iPhone — and its `boundary` events
+//      are unreliable, so the highlight is best-effort there.
+//
+// Either way the page turns itself when the narration ends, which is what lets a
+// child who cannot read hold the phone and just listen.
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { sentenceAt, type Narration } from "./narration.ts"
 
 const RATE_KEY = "storylands:read-aloud-rate:v1"
 const ON_KEY = "storylands:read-aloud:v1"
@@ -27,15 +29,12 @@ export type Segment = { text: string; start: number; end: number }
 /**
  * Split page prose into read-aloud segments.
  *
- * Sentences, not words: a word-by-word highlight at this age is a strobe, and a
- * whole-page highlight tells you nothing. Keeps the terminal punctuation so the
- * rendered text is identical to the source, and keeps offsets so a boundary
- * event can be mapped back.
+ * Must stay identical to segmentsOf in scripts/lib/segments.mjs, which is what
+ * the narration timings were aligned against. There is a test asserting the two
+ * agree; if they drift, the highlight lands on the wrong sentence.
  */
 export function segmentsOf(text: string): Segment[] {
   const out: Segment[] = []
-  // Sentence-ish: run to a terminator followed by space/newline/end. Abbreviations
-  // are not a concern in prose written for four-year-olds.
   const re = /[^.!?\n]+[.!?]*[\n]*/g
   let m: RegExpExecArray | null
   while ((m = re.exec(text))) {
@@ -65,12 +64,23 @@ function readStored<T>(key: string, parse: (raw: string) => T | null, fallback: 
   }
 }
 
+function store(key: string, value: string) {
+  try {
+    window.localStorage.setItem(key, value)
+  } catch {
+    // Private browsing and a full quota both land here. Not worth failing a
+    // page turn over.
+  }
+}
+
 export type ReadAloud = {
   supported: boolean
   on: boolean
   /** Index of the sentence being spoken, or -1. */
   speaking: number
   rate: Rate
+  /** True when a real narrator is playing rather than the device's voice. */
+  recorded: boolean
   toggle: () => void
   setRate: (r: Rate) => void
 }
@@ -78,26 +88,33 @@ export type ReadAloud = {
 /**
  * @param text       the current page's prose, or null off a story page
  * @param segments   that page's segments, so the caller can render them
+ * @param narration  the book's recording, if it has one
+ * @param pageNumber 1-based page, to look up its clip
  * @param onFinished called when the page has been read to the end, for auto-turn
  */
 export function useReadAloud(
   text: string | null,
   segments: Segment[],
+  narration: Narration | null,
+  pageNumber: number | null,
   onFinished?: () => void,
 ): ReadAloud {
-  const [supported, setSupported] = useState(false)
+  const [speechSupported, setSpeechSupported] = useState(false)
   const [on, setOn] = useState(false)
   const [rate, setRateState] = useState<Rate>(0.85)
   const [speaking, setSpeaking] = useState(-1)
 
-  // Held in a ref so the utterance's own callbacks always see the live value
-  // without re-subscribing and restarting the speech.
   const finishedRef = useRef(onFinished)
   finishedRef.current = onFinished
 
+  const clip = useMemo(() => {
+    if (!narration || pageNumber === null) return null
+    return narration.pages[String(pageNumber)] ?? null
+  }, [narration, pageNumber])
+
   useEffect(() => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return
-    setSupported(true)
+    if (typeof window === "undefined") return
+    setSpeechSupported("speechSynthesis" in window)
     setOn(readStored(ON_KEY, (r) => r === "1", false))
     setRateState(
       readStored(
@@ -111,11 +128,44 @@ export function useReadAloud(
     )
   }, [])
 
+  // ---- recorded narrator -------------------------------------------------
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+
   useEffect(() => {
-    if (!supported || !on || !text) {
+    if (!on || !clip) return
+
+    const audio = new Audio(`/${clip.file}`)
+    audio.playbackRate = rate
+    audio.preload = "auto"
+    audioRef.current = audio
+
+    const onTime = () => setSpeaking(sentenceAt(clip.sentences, audio.currentTime))
+    const onEnd = () => {
       setSpeaking(-1)
-      return
+      finishedRef.current?.()
     }
+    audio.addEventListener("timeupdate", onTime)
+    audio.addEventListener("ended", onEnd)
+
+    // Autoplay can be refused until the page has been interacted with. The
+    // toggle itself is an interaction, so the first play is fine; a refusal
+    // here must not look like a broken book, so it just goes quiet.
+    void audio.play().catch(() => setSpeaking(-1))
+
+    return () => {
+      audio.removeEventListener("timeupdate", onTime)
+      audio.removeEventListener("ended", onEnd)
+      audio.pause()
+      audio.src = ""
+      audioRef.current = null
+      setSpeaking(-1)
+    }
+  }, [on, clip, rate])
+
+  // ---- fallback: the device's own voice -----------------------------------
+  useEffect(() => {
+    if (!on || clip || !speechSupported || !text) return
+
     const synth = window.speechSynthesis
     // Cancel first: turning pages faster than the voice can talk must not queue
     // a backlog of pages nobody is looking at any more.
@@ -139,31 +189,30 @@ export function useReadAloud(
     synth.speak(utterance)
     return () => {
       // Clearing the handlers matters: a cancelled utterance can still fire
-      // `onend`, which would turn the page the reader just navigated away from.
+      // `onend`, which would turn a page the reader has already left.
       utterance.onboundary = null
       utterance.onend = null
       utterance.onerror = null
       synth.cancel()
       setSpeaking(-1)
     }
-  }, [supported, on, text, rate, segments])
+  }, [on, clip, speechSupported, text, rate, segments])
 
   // Leaving the book mid-sentence must not leave a voice talking over the library.
   useEffect(() => {
-    if (!supported) return
-    return () => window.speechSynthesis.cancel()
-  }, [supported])
+    return () => {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel()
+      }
+    }
+  }, [])
 
   const toggle = useCallback(() => {
     setOn((v) => {
       const next = !v
       if (typeof window !== "undefined") {
-        if (!next) window.speechSynthesis.cancel()
-        try {
-          window.localStorage.setItem(ON_KEY, next ? "1" : "0")
-        } catch {
-          // Not worth failing a page turn over.
-        }
+        if (!next && "speechSynthesis" in window) window.speechSynthesis.cancel()
+        store(ON_KEY, next ? "1" : "0")
       }
       return next
     })
@@ -171,12 +220,17 @@ export function useReadAloud(
 
   const setRate = useCallback((r: Rate) => {
     setRateState(r)
-    try {
-      window.localStorage.setItem(RATE_KEY, String(r))
-    } catch {
-      // As above.
-    }
+    store(RATE_KEY, String(r))
   }, [])
 
-  return { supported, on, speaking, rate, toggle, setRate }
+  return {
+    // A narrated book offers read-aloud even where speechSynthesis is missing.
+    supported: speechSupported || !!clip,
+    on,
+    speaking,
+    rate,
+    recorded: !!clip,
+    toggle,
+    setRate,
+  }
 }
