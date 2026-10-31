@@ -6,6 +6,7 @@
 import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
 import { books, bookSlugs, bookBySlug } from '../../books/index.ts'
+
 import { bookCoverArt, describePage, pageArt, PAGE_EXT } from '../../books/types.ts'
 import {
   bandsWithBooks,
@@ -313,6 +314,37 @@ describe('no shelf is dead config', () => {
     assert.ok(
       RICH_SHELVES_THRESHOLD <= 12,
       `threshold ${RICH_SHELVES_THRESHOLD} is too high for a four-band catalog`,
+    )
+  })
+})
+
+describe('per-book covers', () => {
+  test('a book with its own cover is textless, so the reader draws the title', () => {
+    for (const book of Object.values(books)) {
+      if (!book.cover) continue
+      assert.equal(bookCoverArt(book).paintedTitle, false)
+      assert.match(book.cover, /^books\/[a-z0-9-]+\/cover\.webp$/)
+    }
+  })
+
+  test('a catalog entry points at the same cover its book does', () => {
+    // These drifted apart trivially: the registrar writes the character
+    // portrait into landscape/portrait, and a book gaining its own cover has to
+    // update both or the shelf and the reader show different pictures.
+    for (const story of stories) {
+      if (!story.readerSlug) continue
+      const book = bookBySlug(story.readerSlug)
+      if (!book?.cover) continue
+      assert.equal(story.portrait, `/${book.cover}`, `${story.id} portrait`)
+      assert.equal(story.landscape, `/${book.cover}`, `${story.id} landscape`)
+    }
+  })
+
+  test('a per-book cover has a thumbnail path', () => {
+    assert.equal(
+      thumbOf('/books/x/cover.webp'),
+      '/books/x/thumb/cover.webp',
+      'a shelf would download the full-size cover',
     )
   })
 })

@@ -68,6 +68,8 @@ try {
   const h1s = await page.$$eval("h1", (els) => els.map((e) => e.textContent?.trim()))
   check("no HTML heading over the painted cover", h1s.length === 0, JSON.stringify(h1s))
 
+
+
   // ---- 3. the end of book one offers book two ----
   // Walk to the end card by pressing Next.
   const start = await page.$('[aria-label="Start reading"], [aria-label="Keep reading"]')
@@ -129,6 +131,27 @@ try {
     "a published book never hands over the staging book",
     !nibsOffers.includes("/read/pixies-enormous-plip"),
     JSON.stringify(nibsOffers),
+  )
+
+  // ---- 5. a TEXTLESS per-book cover must show its title ----
+  //
+  // This is the whole reason the painted and textless cases are distinguished
+  // rather than one or the other being hardcoded. It runs LAST on purpose: it
+  // navigates away, and when it sat in the middle of this script the end-card
+  // checks above silently ran against Tilly's book instead of Pip's — which is
+  // book 2 of 2, so they reported the app as broken when it was correct.
+  await page.goto(`${BASE}/read/tillys-winter-map`, { waitUntil: "networkidle2" })
+  const tillyH1 = await page.$$eval("h1", (els) => els.map((e) => e.textContent?.trim()))
+  check(
+    "a textless cover DOES show the book's own title",
+    tillyH1.includes("Tilly’s Winter Map"),
+    JSON.stringify(tillyH1),
+  )
+  const coverSrc = await page.$eval("img", (e) => e.getAttribute("src") ?? "")
+  check(
+    "and it uses the book's own cover, not the character portrait",
+    /tillys-winter-map/.test(decodeURIComponent(coverSrc)),
+    decodeURIComponent(coverSrc).slice(0, 120),
   )
 } finally {
   await browser.close()

@@ -55,6 +55,9 @@ const rawBook: Book = {
   band: 'young',
   seriesId: 'crooked-root',
   seriesOrder: 2,
+  // Textless and portrait, so the reader draws the real title over it. See
+  // bookCoverArt in ../types.ts and scripts/generate-cover.mjs.
+  cover: 'books/tillys-winter-map/cover.webp',
   pages: [
     {
       page: 1,

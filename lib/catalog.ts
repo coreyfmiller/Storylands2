@@ -92,8 +92,13 @@ export const stories: Story[] = [
     // the two shelves would walk a child off a reviewed book onto an unreviewed
     // one, which the "no main-shelf book is in a series with a staging book"
     // test exists to prevent.
-    landscape: "/characters/tilly.webp",
-    portrait: "/characters/tilly.webp",
+    // The first book in the library with its own cover rather than its
+    // character's portrait. Tilly's portrait reads "TILLY / Big questions.
+    // Brighter tomorrows." painted into the art, so on a book called "Tilly's
+    // Winter Map" the title never appeared anywhere — and book one and book two
+    // of this series would have been the same picture twice.
+    landscape: "/books/tillys-winter-map/cover.webp",
+    portrait: "/books/tillys-winter-map/cover.webp",
     ages: "Ages 4–6",
     targetAge: 6,
     band: "young",
@@ -329,7 +334,16 @@ export function storyById(id: string) {
  * 32px avatar in the nav was downloading the full-size cover.
  */
 export function thumbOf(src: string) {
-  return src.replace("/art/", "/art/thumb/").replace("/characters/", "/characters/thumb/")
+  return (
+    src
+      .replace("/art/", "/art/thumb/")
+      .replace("/characters/", "/characters/thumb/")
+      // Per-book covers, written by scripts/generate-cover.mjs. A full cover is
+      // over 100KB and a shelf shows it at about 160px; without this every card
+      // on the shelf downloads the full-size image, which is exactly the
+      // regression that `/characters/` was missing here for.
+      .replace(/\/books\/([^/]+)\/cover\.webp$/, "/books/$1/thumb/cover.webp")
+  )
 }
 
 export function seriesForBands(bands: Band[]) {

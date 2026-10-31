@@ -77,6 +77,26 @@ function coverPrompt(book, bios, cast) {
     .map((c) => `${c} (${bios[c] ?? 'exactly as in the reference'})`)
     .join(' and ')
 
+  /**
+   * Everything this book forbids, carried onto the cover.
+   *
+   * The first version of this script omitted it and all three candidates for
+   * Tilly's Winter Map put a physical paper map in her wings — which that book
+   * forbids on every page, because the entire premise is that her map is behind
+   * her eyes. The cover would have contradicted the story on the shelf.
+   *
+   * Union across pages rather than page one's list, since story-specific bans
+   * are added per page and the cover can breach any of them.
+   */
+  const forbidden = [
+    ...new Set(book.pages.flatMap((p) => p.manifest?.forbiddenVisualFacts ?? [])),
+  ]
+
+  /** The seasons and times the book is actually set in, so the cover matches. */
+  const seasons = [
+    ...new Set(book.pages.map((p) => p.manifest?.timeOfDay).filter(Boolean)),
+  ].slice(0, 4)
+
   return [
     styleFor(book.band ?? 'young'),
     // Override the landscape clause from the shared style: a cover is portrait.
@@ -87,10 +107,15 @@ function coverPrompt(book, bios, cast) {
     `It opens in ${first?.location ?? 'the setting'} and ends in ${last?.location ?? 'the same world'}.`,
     'Compose it as a cover: the character or characters large and central in the lower two thirds, looking out or into the scene, with the setting readable behind them and GENEROUS EMPTY SKY OR SPACE ACROSS THE TOP THIRD where a title will be placed later.',
     'The top third must be simple and uncluttered — sky, canopy, mist, water — with nothing important in it.',
+    seasons.length ? `The book is set at: ${seasons.join('; ')}. The cover must show that season and that light, not a generic sunny day.` : '',
+    // Everything the pages forbid, the cover forbids. See `forbidden` above.
+    forbidden.length ? `This book FORBIDS all of the following, and the cover must not contain any of them either: ${forbidden.join('; ')}.` : '',
     // The whole point of generating this rather than reusing the painted portrait.
     'ABSOLUTELY NO TEXT OF ANY KIND. No title, no character name, no tagline, no letters, no numbers, no words anywhere in the image. No signpost, board, placard, plaque, nameplate, book spine, label or lettering on any object. The title is drawn by the app on top of this picture, so any painted text would appear twice.',
     'Warm, inviting, and unmistakably the same world as the pages of this book.',
-  ].join(' ')
+  ]
+    .filter(Boolean)
+    .join(' ')
 }
 
 async function main() {
@@ -121,6 +146,19 @@ async function main() {
       .toFile(out)
     console.log(
       `wrote public/books/${SLUG}/cover.webp  ${info.width}x${info.height}  ${(info.size / 1024).toFixed(0)}KB`,
+    )
+
+    // And a thumbnail, because the shelf shows this at about 160px wide and the
+    // full cover is over 100KB. `thumbOf` in lib/catalog.ts knows this path.
+    // Without it every cover on a shelf of twenty books downloads at full size,
+    // which is the regression that cost 94% of the payload the first time.
+    await mkdir(path.join(servedDir, 'thumb'), { recursive: true })
+    const thumb = await sharp(draft)
+      .resize({ width: 400, withoutEnlargement: true })
+      .webp({ quality: 62 })
+      .toFile(path.join(servedDir, 'thumb', 'cover.webp'))
+    console.log(
+      `wrote public/books/${SLUG}/thumb/cover.webp  ${thumb.width}x${thumb.height}  ${(thumb.size / 1024).toFixed(0)}KB`,
     )
     console.log('\nNow add this to the book, which is what makes the app use it:')
     console.log(`  cover: 'books/${SLUG}/cover.webp',`)
