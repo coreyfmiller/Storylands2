@@ -10,6 +10,8 @@ import { books, bookSlugs, bookBySlug } from '../../books/index.ts'
 import { bookCoverArt, describePage, pageArt, PAGE_EXT } from '../../books/types.ts'
 import {
   bandsWithBooks,
+  charactersWithBooks,
+  storiesForCharacter,
   mainShelf,
   newShelf,
   nextInSeries,
@@ -26,7 +28,9 @@ import {
   TAG_SHELVES,
 } from '../catalog.ts'
 import { MAX_AGE, MIN_AGE, bandsForAge, publishedAges } from '../readers.ts'
-import { BANDS } from '../bands.ts'
+import { BANDS, BAND_ORDER } from '../bands.ts'
+import { CHARACTERS } from '../characters.ts'
+import { timesFinished } from '../progress.ts'
 
 describe('the book registry', () => {
   test('every slug resolves to a book', () => {
@@ -345,6 +349,98 @@ describe('per-book covers', () => {
       thumbOf('/books/x/cover.webp'),
       '/books/x/thumb/cover.webp',
       'a shelf would download the full-size cover',
+    )
+  })
+})
+
+describe('characters', () => {
+  test('every story names a character that exists', () => {
+    for (const story of stories) {
+      assert.ok(story.character, `${story.id} has no character`)
+      assert.ok(
+        CHARACTERS[story.character],
+        `${story.id} stars "${story.character}", who is not in the character registry`,
+      )
+    }
+  })
+
+  test("a story's character matches the book on disk", () => {
+    // The catalog's character used to be implicit in the `landscape` path as
+    // /characters/<id>.webp, and vanished entirely once a book got a cover of
+    // its own. Stated now, so it has to be checked against the real thing.
+    for (const story of stories) {
+      if (!story.readerSlug) continue
+      const book = bookBySlug(story.readerSlug)
+      assert.equal(story.character, book?.character, `${story.id}`)
+    }
+  })
+
+  test('browsing a character never leaves the main shelf', () => {
+    // A character page is somewhere a child browses, so it must not be the
+    // route by which an unreviewed staging book reaches them.
+    for (const { character } of charactersWithBooks()) {
+      for (const s of storiesForCharacter(character.id)) {
+        assert.notEqual(s.shelf, 'new', `${character.id} surfaces staging book ${s.id}`)
+        assert.ok(s.readerSlug, `${character.id} surfaces unreadable ${s.id}`)
+      }
+    }
+  })
+
+  test('a character with no readable book cannot be browsed', () => {
+    for (const { stories: owned } of charactersWithBooks()) {
+      assert.ok(owned.length > 0)
+    }
+    assert.deepEqual(storiesForCharacter('nobody'), [])
+  })
+
+  test("a character's books are ordered youngest band first", () => {
+    for (const { character } of charactersWithBooks()) {
+      const got = storiesForCharacter(character.id).map((s) => BAND_ORDER.indexOf(s.band))
+      const sorted = [...got].sort((a, b) => a - b)
+      assert.deepEqual(got, sorted, `${character.id} is not youngest-first`)
+    }
+  })
+
+  test('a character tagline is not a moral', () => {
+    // A tagline has to hold for every book the character is ever in. Three of
+    // the painted covers fail this — Rusty's says "Kindness makes a bigger
+    // world" — which is exactly why those covers cannot head a series.
+    for (const c of Object.values(CHARACTERS)) {
+      assert.doesNotMatch(
+        c.tagline,
+        /\b(?:kindness|bravery|friendship|sharing)\b.{0,20}\b(?:is|makes|means)\b/i,
+        `${c.id}'s tagline states a moral`,
+      )
+      assert.ok(c.tagline.length <= 60, `${c.id}'s tagline is too long for a card`)
+    }
+  })
+})
+
+describe('re-reads are counted honestly', () => {
+  test('a record from before counting reports what it evidences', () => {
+    // Not 0, which would be a lie about a book that was finished; not more,
+    // which would be an invention.
+    assert.equal(timesFinished(undefined), 0)
+    assert.equal(
+      timesFinished({ page: 12, total: 13, finished: true, updatedAt: 1 }),
+      1,
+      'a finished legacy record evidences one reading',
+    )
+    assert.equal(
+      timesFinished({ page: 4, total: 13, finished: false, updatedAt: 1 }),
+      0,
+      'an unfinished legacy record evidences none',
+    )
+  })
+
+  test('an explicit count wins over the finished flag', () => {
+    assert.equal(
+      timesFinished({ page: 12, total: 13, finished: true, updatedAt: 1, completions: 9 }),
+      9,
+    )
+    assert.equal(
+      timesFinished({ page: 12, total: 13, finished: true, updatedAt: 1, completions: 0 }),
+      0,
     )
   })
 })

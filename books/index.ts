@@ -16,9 +16,10 @@ import { book as pixiesEnormousPlip } from './pixies-enormous-plip/book.ts'
 import { book as tillysWinterMap } from './tillys-winter-map/book.ts'
 import { book as goodnightLittleLight } from './goodnight-little-light/book.ts'
 import { book as oliversBallUnderTheChair } from './olivers-ball-under-the-chair/book.ts'
+import { book as lumiAndTheFrozenRiver } from './lumi-and-the-frozen-river/book.ts'
 import type { Book } from './types.ts'
 
-const all: Book[] = [pip, oliver, maple, finn, nibs, rusty, lumi, pixiesEnormousPlip, tillysWinterMap, goodnightLittleLight, oliversBallUnderTheChair]
+const all: Book[] = [pip, oliver, maple, finn, nibs, rusty, lumi, pixiesEnormousPlip, tillysWinterMap, goodnightLittleLight, oliversBallUnderTheChair, lumiAndTheFrozenRiver]
 
 export const books: Record<string, Book> = Object.fromEntries(
   all.map((b) => [b.id, b]),

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import Image from "next/image"
 import Link from "next/link"
 import { bookCoverArt, describePage, type Book } from "@/books/types"
-import { isResumable, readProgress, recordProgress } from "@/lib/progress"
+import { isResumable, readProgress, recordCompletion, recordProgress } from "@/lib/progress"
 import { segmentsOf, useReadAloud, type Segment } from "@/lib/read-aloud"
 import { useNarration } from "@/lib/narration"
 import {
@@ -273,6 +273,23 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
     if (index < 0) return
     recordProgress(bookSlug, Math.min(index, total - 1), total)
   }, [index, bookSlug, total])
+
+  // Count a reading when the end card is reached.
+  //
+  // Here rather than in recordProgress, which fires on every page turn and
+  // would increment once per turn. Guarded on the index so re-rendering the end
+  // card does not count a second reading, and reset when the book is re-opened
+  // so reading it again genuinely counts again — which is the entire point.
+  const counted = useRef(false)
+  useEffect(() => {
+    if (index < total) {
+      counted.current = false
+      return
+    }
+    if (counted.current) return
+    counted.current = true
+    recordCompletion(bookSlug, total)
+  }, [index, total, bookSlug])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

@@ -24,6 +24,33 @@ export type BookProgress = {
   finished: boolean
   /** Epoch ms, for ordering the Continue row most-recent-first. */
   updatedAt: number
+  /**
+   * How many times this book has been read to the end.
+   *
+   * The single strongest signal in an app for small children, and it was being
+   * thrown away: `finished` is a boolean, so a book read once and a book read
+   * twenty times were indistinguishable. Children do not consume picture books,
+   * they re-read a favourite until the adult can recite it — "again" is the
+   * whole relationship.
+   *
+   * Optional because every record written before this existed lacks it. Absent
+   * means "we don't know", which is honestly different from zero, and
+   * `timesFinished` treats it as the one completion `finished` implies.
+   */
+  completions?: number
+}
+
+/**
+ * How many times a book has been finished, as far as we can tell.
+ *
+ * A record from before completions were counted reports 1 if it was finished,
+ * because that is what it genuinely evidences — not 0, which would be a lie,
+ * and not more, which would be an invention.
+ */
+export function timesFinished(p: BookProgress | undefined): number {
+  if (!p) return 0
+  if (typeof p.completions === "number") return p.completions
+  return p.finished ? 1 : 0
 }
 
 export type ProgressMap = Record<string, BookProgress>
@@ -82,6 +109,32 @@ export function recordProgress(slug: string, page: number, total: number) {
     total,
     finished: (prev?.finished ?? false) || page >= total - 1,
     updatedAt: Date.now(),
+    completions: timesFinished(prev),
+  }
+  write(map)
+}
+
+/**
+ * Record that a book was read all the way to the end.
+ *
+ * Separate from `recordProgress` on purpose. Progress fires on every page turn,
+ * so counting a completion there would increment once per turn on the last
+ * page; and `finished` is already sticky, so it cannot tell a second reading
+ * from a re-render of the first.
+ *
+ * Called once from the end card, which is the only place that genuinely knows a
+ * book was reached the end of.
+ */
+export function recordCompletion(slug: string, total: number) {
+  if (typeof window === "undefined") return
+  const map = readProgress()
+  const prev = map[slug]
+  map[slug] = {
+    page: Math.max(0, total - 1),
+    total,
+    finished: true,
+    updatedAt: Date.now(),
+    completions: timesFinished(prev) + 1,
   }
   write(map)
 }
@@ -123,10 +176,15 @@ export function useProgress() {
     setMap(readProgress())
   }, [])
 
+  const complete = useCallback((slug: string, total: number) => {
+    recordCompletion(slug, total)
+    setMap(readProgress())
+  }, [])
+
   const forget = useCallback((slug: string) => {
     clearProgress(slug)
     setMap(readProgress())
   }, [])
 
-  return { progress: map, record, forget }
+  return { progress: map, record, complete, forget }
 }

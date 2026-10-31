@@ -17,6 +17,8 @@ import { Hero } from "@/components/hero"
 import { ContinueRow } from "@/components/continue-row"
 import { StoryRow } from "@/components/story-row"
 import { SeriesRow } from "@/components/series-row"
+import { CharacterRow } from "@/components/character-row"
+import { FavouritesRow } from "@/components/favourites-row"
 import { LibraryGrid } from "@/components/library-grid"
 import { Modal } from "@/components/modal"
 import { StoryDetail } from "@/components/story-detail"
@@ -108,6 +110,9 @@ export function StorylandsApp() {
               install doesn't open on a row of things nobody read. */}
           <ContinueRow bands={bands} onResume={openReader} />
 
+          {/* Renders nothing until a book has genuinely been read twice. */}
+          <FavouritesRow bands={bands} onOpen={openReader} />
+
           {/* Series are shown at EVERY catalog size, unlike the tag rows.
               SeriesRow used to live inside the richShelves branch, which needs
               20 books in one band — so with eight books across four bands it had
@@ -115,6 +120,12 @@ export function StorylandsApp() {
               and the app never showed. It is also the one row that is never
               redundant: it groups books by what connects them rather than
               reshuffling the same covers under another heading. */}
+          {/* Browse by character before browse by series: a child knows which
+              animal they want long before they know a series exists. Both sit
+              outside the richShelves gate because neither is a reshuffle of the
+              same covers under a different heading. */}
+          <CharacterRow bands={bands} />
+
           <SeriesRow bands={bands} />
 
           {richShelves ? (

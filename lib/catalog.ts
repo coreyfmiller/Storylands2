@@ -1,5 +1,6 @@
 import type { BandId } from "./bands"
 import { BANDS, BAND_ORDER } from "./bands.ts"
+import { CHARACTERS, type Character } from "./characters.ts"
 
 /**
  * The age band a story belongs to.
@@ -29,6 +30,16 @@ export type Story = {
    * built and falls back to the sample preview. Storylands books are linear, not CYOA.
    */
   readerSlug?: string
+  /**
+   * The id of the character who stars in this book, matching `CHARACTERS` in
+   * lib/characters.ts and `book.character` on disk.
+   *
+   * Stated here because the catalog could not previously answer "which books is
+   * Pip in?" without loading every book file. The character was only implicit,
+   * buried inside the `landscape` path as `/characters/<id>.webp` — and the
+   * moment a book got a cover of its own, even that disappeared.
+   */
+  character: string
   ages: string
   targetAge: number
   band: Band
@@ -75,6 +86,36 @@ export type Series = {
 
 export const stories: Story[] = [
   {
+    id: "lumi-and-the-frozen-river",
+    title: "Lumi and the Frozen River",
+    kicker: "A Storylands Original",
+    // These said "One last lantern, and a very stubborn star" — the subtitle of
+    // an earlier draft of this book that no longer exists. The registrar is
+    // idempotent, so when the book was re-authored it wrote book.ts and
+    // correctly left the existing catalog entry alone, and the two drifted.
+    hook: "Six lanterns, one stubborn owl, and a very expensive hook.",
+    synopsis:
+      "The river freezes for the first time anyone can remember, with six of the valley's floating lanterns stuck halfway home. Lumi means to carry every one back herself before dark, and says no when Pip offers to melt a channel. Then the ice shelf cracks and takes all six, and the only hook that will reach them is the star lantern she has carried since her first night on the job.",
+    readerSlug: "lumi-and-the-frozen-river",
+    character: "lumi",
+    // Promoted for the same reason Tilly's book was: it is book three of a
+    // series whose first two books are published, and a series straddling the
+    // staging shelf would walk a child off a reviewed book onto an unreviewed
+    // one. Every page of its art was reviewed and ten were re-rolled.
+    landscape: "/books/lumi-and-the-frozen-river/cover.webp",
+    portrait: "/books/lumi-and-the-frozen-river/cover.webp",
+    ages: "Ages 4–6",
+    targetAge: 6,
+    band: "young",
+    minutes: 6,
+    genres: ["Adventure", "Heart"],
+    tags: ["adventure", "heart", "cozy"],
+    seriesId: "pip",
+    seriesOrder: 3,
+    glow: "oklch(0.82 0.13 68)",
+    tint: "oklch(0.32 0.07 265)",
+  },
+  {
     id: "olivers-ball-under-the-chair",
     title: "Oliver’s Ball Under the Chair",
     kicker: "A Storylands Original",
@@ -82,6 +123,7 @@ export const stories: Story[] = [
     synopsis:
       "Oliver's squeaky ball rolls under the big armchair and stops just out of reach. He tries a paw. He tries his nose. He tries wriggling right under, until his fluffy shoulders stop him. Still there. Still stuck. Then he walks round to the other side of the chair.",
     readerSlug: "olivers-ball-under-the-chair",
+    character: "oliver",
     // Promoted: the first book in the toddler band. Until this and the board
     // book landed, ages 0-3 were being shown 4-6 books as a fallback, because
     // bandsForAge refuses to hand anybody an empty shelf.
@@ -104,6 +146,7 @@ export const stories: Story[] = [
     synopsis:
       "Pip says goodnight to the lantern valley one warm thing at a time: a lantern, the river, a sleepy bird, and his own small flame. Each one makes its own soft sound, and the same line comes back on every other page for someone small to say along with you.",
     readerSlug: "goodnight-little-light",
+    character: "pip",
     // Promoted: the first book in the baby band.
     landscape: "/books/goodnight-little-light/cover.webp",
     portrait: "/books/goodnight-little-light/cover.webp",
@@ -133,6 +176,7 @@ export const stories: Story[] = [
     synopsis:
       "Tilly the owl has watched Nibs bury nuts all autumn, and she has every hiding place mapped behind her eyes. The first frost turns the clearing into a sea of identical bumps, and Tilly cannot wait to simply tell him where everything is — until Nibs asks whether he gets to guess any. Then a branch-load of snow buries her map, and the only way left to help him is one she has to unravel her favourite blanket for.",
     readerSlug: "tillys-winter-map",
+    character: "tilly",
     // Promoted off the staging shelf: written against the strict bar, every page
     // of its art reviewed and the two flagged pages re-rolled, prose read and
     // judged. It also has to be here rather than on /newbooks, because it is
@@ -165,6 +209,7 @@ export const stories: Story[] = [
     hook: "One enormous plan. One very small pond.",
     synopsis: "One enormous plan. One very small pond.",
     readerSlug: "pixies-enormous-plip",
+    character: "pixie",
     shelf: "new",
     landscape: "/characters/pixie.webp",
     portrait: "/characters/pixie.webp",
@@ -186,6 +231,7 @@ export const stories: Story[] = [
     synopsis:
       "It's the night of the Lantern Festival, when every dragon lights a lantern with their own fire. Every dragon but Pip, who can only make smoke. But when Pip finds someone small and frightened in the dark, he discovers that the warmest flames don't come from trying harder — they come from a big heart.",
     readerSlug: "pip-first-flame",
+    character: "pip",
     landscape: "/characters/pip.webp",
     portrait: "/characters/pip.webp",
     ages: "Ages 4+",
@@ -209,6 +255,7 @@ export const stories: Story[] = [
     landscape: "/characters/oliver.webp",
     portrait: "/characters/oliver.webp",
     readerSlug: "oliver-vacuum",
+    character: "oliver",
     ages: "Ages 4+",
     targetAge: 5,
     band: "young",
@@ -228,6 +275,7 @@ export const stories: Story[] = [
     landscape: "/characters/maple.webp",
     portrait: "/characters/maple.webp",
     readerSlug: "maple-backyard-night",
+    character: "maple",
     ages: "Ages 4+",
     targetAge: 6,
     band: "young",
@@ -247,6 +295,7 @@ export const stories: Story[] = [
     landscape: "/characters/finn.webp",
     portrait: "/characters/finn.webp",
     readerSlug: "finn-little-boat",
+    character: "finn",
     ages: "Ages 4+",
     targetAge: 5,
     band: "young",
@@ -266,6 +315,7 @@ export const stories: Story[] = [
     landscape: "/characters/nibs.webp",
     portrait: "/characters/nibs.webp",
     readerSlug: "nibs-perfect-acorn",
+    character: "nibs",
     ages: "Ages 4+",
     targetAge: 5,
     band: "young",
@@ -287,6 +337,7 @@ export const stories: Story[] = [
     landscape: "/characters/rusty.webp",
     portrait: "/characters/rusty.webp",
     readerSlug: "rusty-loud-day",
+    character: "rusty",
     ages: "Ages 4+",
     targetAge: 6,
     band: "young",
@@ -306,6 +357,7 @@ export const stories: Story[] = [
     landscape: "/characters/lumi.webp",
     portrait: "/characters/lumi.webp",
     readerSlug: "lumi-lights-way",
+    character: "lumi",
     ages: "Ages 4+",
     targetAge: 6,
     band: "young",
@@ -400,6 +452,52 @@ export function seriesForBands(bands: Band[]) {
 
 export function seriesById(id: string): Series | undefined {
   return series.find((s) => s.id === id)
+}
+
+/**
+ * Every readable book starring a character, newest band first then by title.
+ *
+ * Main shelf only, for the same reason `nextInSeries` stays on one shelf: a
+ * character page is somewhere a child browses, and it must not be the route by
+ * which an unreviewed staging book reaches them.
+ */
+export function storiesForCharacter(id: string): Story[] {
+  return mainShelf()
+    .filter((s) => s.character === id && s.readerSlug)
+    .sort((a, b) => {
+      // Within a character, read youngest-first: a three-year-old meeting Pip
+      // should be offered the board book before the 4-6 story.
+      const byBand = BAND_ORDER.indexOf(a.band) - BAND_ORDER.indexOf(b.band)
+      return byBand !== 0 ? byBand : a.title.localeCompare(b.title)
+    })
+}
+
+/**
+ * Characters a child can actually browse, most books first.
+ *
+ * Derived from the catalog, never listed, so a character with no readable book
+ * cannot appear — which is the mistake the hand-written series counts made.
+ */
+export function charactersWithBooks(): { character: Character; stories: Story[] }[] {
+  const ids = [...new Set(mainShelf().filter((s) => s.readerSlug).map((s) => s.character))]
+  return ids
+    .map((id) => ({ character: CHARACTERS[id], stories: storiesForCharacter(id) }))
+    .filter((c) => c.character && c.stories.length > 0)
+    .sort(
+      (a, b) =>
+        b.stories.length - a.stories.length ||
+        a.character.name.localeCompare(b.character.name),
+    )
+}
+
+/** Characters this reader's bands can see, for a browse row. */
+export function charactersForBands(bands: Band[]) {
+  return charactersWithBooks()
+    .map(({ character, stories }) => ({
+      character,
+      stories: stories.filter((s) => bands.includes(s.band)),
+    }))
+    .filter((c) => c.stories.length > 0)
 }
 
 /**

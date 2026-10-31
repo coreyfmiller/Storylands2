@@ -25,6 +25,7 @@
 
 import { writeFile, mkdir, access, readFile, stat } from 'node:fs/promises'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { loadBook, bookSlugs, PUBLIC_DIR } from './lib/book-source.mjs'
 import { segmentsOf, wordsOf } from './lib/segments.mjs'
 import { loadEnv } from './lib/load-env.mjs'
@@ -47,11 +48,53 @@ const VOICES = ['coral', 'nova', 'shimmer', 'sage', 'ballad']
 const VOICE = value('voice') ?? 'coral'
 
 /**
- * How to read it. This is the whole reason for using a directable TTS model
- * rather than the device's voice.
+ * How the SHOT should colour the read.
+ *
+ * A picture book's framing is already a statement about intimacy, and the ear
+ * wants the same thing the eye is being given: a close shot on a face is a
+ * confidence, an establishing shot is an invitation, a detail shot asks the
+ * listener to lean in. The shot type is declared on every page of every book
+ * written since the strict bar and was being used only by the illustrator.
  */
-function instructionsFor(band) {
+export const SHOT_DIRECTION = {
+  establishing: 'open out; this page is showing the listener where we are, so give it air',
+  wide: 'relaxed and easy, with room around the words',
+  mid: 'plain and steady; this page is carrying the story forward',
+  close: 'quieter and closer, almost confiding — the face is doing the work here',
+  detail: 'drop your voice a little and slow down; make the listener lean in and look',
+  low: 'lift it; let this one feel bigger than the page before',
+  high: 'smaller and softer, as if seen from a long way up',
+  overShoulder: 'hushed and companionable, as though you are both looking at the same thing',
+  twoShot: 'warmer and more conversational; there are two of them now',
+}
+
+/**
+ * How to read ONE PAGE. This is the whole reason for using a directable TTS
+ * model rather than the device's voice.
+ *
+ * Per page, not per book. Until now this took only the band, so the direction
+ * was byte-identical for every page of every book in that band — the narrator
+ * read the quiet opening and the page where everything goes wrong in exactly
+ * the same register, thirteen times, and the arc the author worked to build
+ * was flattened out in performance.
+ *
+ * The information to fix it was already on every page and unread: `manifest.
+ * emotionalBeat` ("Sudden longing", "Eager effort", "Curiosity rekindled") and
+ * `manifest.shotType`. Both go in here now.
+ *
+ * This replaces the idea of giving each character their own voice, which was
+ * measured and rejected: only 7% of the library's words are inside quotation
+ * marks, and four books have no dialogue at all. Casting a second voice would
+ * have cost a re-recording of everything, plus clip-stitching and re-aligning
+ * the word timings the sentence highlight depends on, to change 7% of the
+ * audio. Directing the one narrator properly changes 100% of it for the same
+ * number of calls and no new moving parts.
+ */
+export function instructionsFor(band, page) {
   const spec = bandSpec(band ?? DEFAULT_BAND)
+  const beat = String(page?.manifest?.emotionalBeat ?? '').trim()
+  const shot = SHOT_DIRECTION[page?.manifest?.shotType]
+
   return [
     // The band's own direction. This was the fixed line "reading a picture book
     // aloud to a four-year-old at bedtime", which is the wrong performance for
@@ -60,10 +103,19 @@ function instructionsFor(band) {
     // dialogue for a child following the words themselves.
     `You are ${spec.voiceNote}.`,
     'Warm, gentle and unhurried, with a smile in your voice.',
+    // The page's own emotion, which is the point of this function.
+    beat ? `THIS PAGE: the feeling is "${beat}". Let that sit under the whole read.` : '',
+    shot ? `Pitch it like ${shot}.` : '',
     'Slow down and land the last few words of each page.',
     'Let sentence-ending punctuation breathe; a short pause is better than a rushed line.',
+    // A guard against the direction above being over-played. A narrator who
+    // acts the beat rather than carrying it is worse than a flat one, and at
+    // this age a frightened or distressed read is actively unwelcome.
+    'Colour it, never act it. Do not perform distress, fear or sadness; a child is listening at bedtime. The feeling belongs in your pacing and warmth, not in a voice.',
     'Never sound like an announcer, an audiobook trailer, or a news reader.',
-  ].join(' ')
+  ]
+    .filter(Boolean)
+    .join(' ')
 }
 
 const TTS_MODEL = process.env.OPENAI_TTS_MODEL || 'gpt-4o-mini-tts'
@@ -88,7 +140,7 @@ async function exists(p) {
   }
 }
 
-async function speak(text, band) {
+async function speak(text, band, page) {
   const res = await fetch('https://api.openai.com/v1/audio/speech', {
     method: 'POST',
     headers: { Authorization: `Bearer ${key()}`, 'Content-Type': 'application/json' },
@@ -96,7 +148,7 @@ async function speak(text, band) {
       model: TTS_MODEL,
       voice: VOICE,
       input: text,
-      instructions: instructionsFor(band),
+      instructions: instructionsFor(band, page),
       response_format: 'mp3',
     }),
   })
@@ -221,7 +273,7 @@ async function narrateBook(slug) {
     }
 
     try {
-      const mp3 = await speak(page.text, book.band)
+      const mp3 = await speak(page.text, book.band, page)
       await writeFile(file, mp3)
 
       let sentences = null
@@ -283,7 +335,12 @@ async function main() {
   if (recorded > 0) console.log('\nThe reader picks this up automatically. Commit the audio.')
 }
 
-main().catch((e) => {
-  console.error(e.message)
-  process.exit(1)
-})
+// Only when run directly. Importing this module to test `instructionsFor`
+// otherwise kicked off an actual narration run — which costs money, writes
+// files, and reads argv that belongs to the test runner.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((e) => {
+    console.error(e.message)
+    process.exit(1)
+  })
+}
