@@ -206,7 +206,7 @@ const rawBook: Book = {
     },
     {
       page: 9,
-      text: `Maple let out a long breath.\n\nMaybe brave didn't mean never being scared. Maybe brave meant looking anyway.`,
+      text: `Maple let out a long breath.\n\nHer tail flattened back down. She did not go inside, and she did not stop looking at the dark.`,
       art: '',
       manifest: {
         charactersPresent: ['maple'],
@@ -244,7 +244,7 @@ const rawBook: Book = {
     },
     {
       page: 11,
-      text: `She stayed out all night after all.\n\nThe owl kept watch. The stars kept her company. And the dark, it turned out, was not so bad with a friend in it.`,
+      text: `She stayed out all night after all.\n\nThe owl kept watch. The stars kept her company. Twice she woke up, looked around, and went straight back to sleep.`,
       art: '',
       manifest: {
         charactersPresent: ['maple'],

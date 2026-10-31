@@ -16,10 +16,13 @@ import {
   series,
   seriesById,
   seriesPosition,
+  shelvesForBands,
   stories,
   storiesInSeries,
   storyByReaderSlug,
   thumbOf,
+  RICH_SHELVES_THRESHOLD,
+  TAG_SHELVES,
 } from '../catalog.ts'
 import { MAX_AGE, MIN_AGE, bandsForAge, publishedAges } from '../readers.ts'
 import { BANDS } from '../bands.ts'
@@ -272,5 +275,44 @@ describe('no age is shown an empty library', () => {
     // And it must be narrower than what a profile accepts, or the two facts
     // have been conflated again.
     assert.ok(min >= MIN_AGE && max <= MAX_AGE)
+  })
+})
+
+describe('no shelf is dead config', () => {
+  // Three rows -- "Mysteries Worth Solving", "Strange Things Are Happening" and
+  // "Stories for a Rainy Night" -- filtered for tags no book has ever carried.
+  // They looked like deliberate configuration and could never render.
+  test('every tag shelf heading maps to a tag some book carries', () => {
+    const tags = new Set(stories.flatMap((s) => s.tags))
+    for (const { tag, title } of TAG_SHELVES) {
+      assert.ok(tags.has(tag), `shelf "${title}" filters for "${tag}", which no book has`)
+    }
+  })
+
+  test('every shelf that renders has at least its own minimum', () => {
+    for (const band of bandsWithBooks()) {
+      for (const shelf of shelvesForBands([band])) {
+        assert.ok(
+          shelf.stories.length >= 2,
+          `"${shelf.title}" rendered with ${shelf.stories.length} book(s)`,
+        )
+      }
+    }
+  })
+
+  test('no two shelves in one band carry the same heading', () => {
+    for (const band of bandsWithBooks()) {
+      const titles = shelvesForBands([band]).map((s) => s.title)
+      assert.equal(new Set(titles).size, titles.length, `duplicate heading in "${band}"`)
+    }
+  })
+
+  test('the rich-shelf threshold is reachable by one band', () => {
+    // It was 20, counted per BAND rather than per library. Splitting the
+    // catalog four ways made it unreachable, so the rows would never appear.
+    assert.ok(
+      RICH_SHELVES_THRESHOLD <= 12,
+      `threshold ${RICH_SHELVES_THRESHOLD} is too high for a four-band catalog`,
+    )
   })
 })

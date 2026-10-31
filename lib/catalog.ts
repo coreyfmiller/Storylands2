@@ -364,6 +364,31 @@ type ShelfDef = {
   max?: number
 }
 
+/**
+ * A heading for every tag a book can carry, and the minimum to fill a row.
+ *
+ * Derived into shelves rather than listed as shelves, which is the fix for three
+ * rows that could never render: "Mysteries Worth Solving", "Strange Things Are
+ * Happening" and "Stories for a Rainy Night" filtered for `mystery`, `strange`
+ * and `rainy`, and no book in the library has ever carried any of those tags.
+ * They looked like deliberate configuration and were dead the day they were
+ * written.
+ *
+ * Driving it off the tags that EXIST means a dead row is impossible, and the
+ * moment a book arrives tagged `mystery` its row appears on its own. Adding a
+ * heading here for a tag nothing uses is harmless — it simply produces no shelf
+ * — and there is a test asserting every heading maps to a real tag so this
+ * cannot silently rot again.
+ */
+export const TAG_SHELVES: { tag: string; title: string; min: number }[] = [
+  { tag: "funny", title: "Laugh Out Loud", min: 2 },
+  { tag: "magic", title: "Worlds of Magic", min: 2 },
+  { tag: "adventure", title: "Big Adventures", min: 3 },
+  { tag: "heart", title: "Stories With a Big Heart", min: 3 },
+  { tag: "cozy", title: "Quiet and Cosy", min: 2 },
+  { tag: "family", title: "Stories About Us", min: 3 },
+]
+
 const shelfDefs: ShelfDef[] = [
   {
     title: "Trending in Storylands",
@@ -381,36 +406,13 @@ const shelfDefs: ShelfDef[] = [
     filter: (s) => s.tags.includes("adventure") || s.tags.includes("heart"),
     min: 3,
   },
-  {
-    title: "Mysteries Worth Solving",
-    filter: (s) => s.tags.includes("mystery"),
-    min: 3,
-  },
-  {
-    title: "Laugh Out Loud",
-    filter: (s) => s.tags.includes("funny"),
-    min: 2,
-  },
-  {
-    title: "Worlds of Magic",
-    filter: (s) => s.tags.includes("magic"),
-    min: 2,
-  },
-  {
-    title: "Strange Things Are Happening",
-    filter: (s) => s.tags.includes("strange"),
-    min: 3,
-  },
-  {
-    title: "Big Adventures",
-    filter: (s) => s.tags.includes("adventure"),
-    min: 3,
-  },
-  {
-    title: "Stories for a Rainy Night",
-    filter: (s) => s.tags.includes("rainy"),
-    min: 3,
-  },
+  ...TAG_SHELVES.filter((t) => stories.some((s) => s.tags.includes(t.tag))).map(
+    ({ tag, title, min }): ShelfDef => ({
+      title,
+      filter: (s) => s.tags.includes(tag),
+      min,
+    }),
+  ),
   {
     title: "15 Minutes or Less",
     filter: (s) => s.minutes <= 15,
@@ -419,12 +421,23 @@ const shelfDefs: ShelfDef[] = [
   },
 ]
 
-// Below this many titles in a profile's band(s), the Netflix-style recommendation rows are
-// pure redundancy — every row surfaces nearly the same handful of books under a different
-// heading. Until the catalog is large enough for rows to be genuinely distinct, we show a
-// single big cover grid instead. The full shelf engine stays wired and turns on automatically
-// once a band crosses this threshold.
-export const RICH_SHELVES_THRESHOLD = 20
+/**
+ * Below this many titles in a profile's band(s), the tag rows are pure
+ * redundancy — every row surfaces nearly the same handful of books under a
+ * different heading — so a single big cover grid is shown instead.
+ *
+ * Twelve, not twenty. Twenty was chosen when there was ONE band and it was
+ * already optimistic; splitting the catalog into four bands made it unreachable,
+ * since it counts books in the reader's band rather than in the library. A band
+ * would have needed twenty of its own books before the shelves appeared, so on
+ * any realistic library the rows would simply never have turned on.
+ *
+ * Twelve is the point where the per-shelf `min` thresholds start producing rows
+ * with genuinely different books in them rather than three reorderings of the
+ * same eight covers. The series row is exempt and shows at any size — see
+ * storylands-app.tsx — because grouping by series is never a reshuffle.
+ */
+export const RICH_SHELVES_THRESHOLD = 12
 
 export function poolForBands(bands: Band[]): Story[] {
   // The staging shelf is deliberately excluded from the main library, so an

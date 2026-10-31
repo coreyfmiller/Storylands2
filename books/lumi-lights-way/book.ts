@@ -229,7 +229,7 @@ const rawBook: Book = {
     },
     {
       page: 10,
-      text: `The firefly's little light showed the path. Lumi's gentle voice kept them calm.\n\nOne small light, and one kind friend — it turned out, that was plenty.`,
+      text: `The firefly's little light showed the path. Lumi's gentle voice kept them calm.\n\nBetween the two of them they could see the next step, and then the next one after that.`,
       art: '',
       manifest: {
         charactersPresent: ['lumi'],
@@ -267,7 +267,7 @@ const rawBook: Book = {
     },
     {
       page: 12,
-      text: `Lumi flew home under the stars, her lantern still dark — and she did not mind at all.\n\nShe had learned something brighter than any lantern.`,
+      text: `Lumi flew home under the stars, her lantern still dark, and she did not mind.\n\nBehind her a small green glow bobbed along the path, lighting its own way now.`,
       art: '',
       manifest: {
         charactersPresent: ['lumi'],

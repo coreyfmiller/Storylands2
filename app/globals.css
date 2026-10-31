@@ -158,6 +158,75 @@
   animation: firefly-glow 3.5s ease-in-out infinite;
 }
 
+/* The page turn.
+ *
+ * A cross-fade reads as a slideshow: the old page dissolves into the new one
+ * with no sense that anything moved, which is the single clearest tell that this
+ * is a web page rather than a book. Paper arrives from a direction.
+ *
+ * So the art slides in from the side the reader is travelling towards, and the
+ * prose follows a beat later and travels less far. The stagger is the whole
+ * effect: moving both the same distance at the same time looks like a carousel,
+ * while the text lagging slightly behind the picture reads as one sheet settling.
+ *
+ * Deliberately short. 320ms is at the top of what can happen between a tap and a
+ * child looking at the new picture; past that the book feels slow to anyone
+ * turning pages quickly, and a four-year-old turns pages very quickly.
+ */
+@keyframes turn-art-forward {
+  from {
+    opacity: 0;
+    transform: translateX(7%) scale(1.015);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+@keyframes turn-art-back {
+  from {
+    opacity: 0;
+    transform: translateX(-7%) scale(1.015);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+@keyframes turn-text-forward {
+  from {
+    opacity: 0;
+    transform: translateX(3%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes turn-text-back {
+  from {
+    opacity: 0;
+    transform: translateX(-3%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.turn-forward .turn-art {
+  animation: turn-art-forward 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.turn-back .turn-art {
+  animation: turn-art-back 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.turn-forward .turn-text {
+  animation: turn-text-forward 0.34s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both;
+}
+.turn-back .turn-text {
+  animation: turn-text-back 0.34s cubic-bezier(0.22, 1, 0.36, 1) 0.05s both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   ::before,
@@ -165,6 +234,18 @@
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
+  }
+
+  /* Collapsing the duration leaves the FROM state applied for one frame, which
+     on a page turn is the new page visibly offset to one side before it snaps.
+     A reader who asked for less motion gets none: no slide, full opacity. */
+  .turn-forward .turn-art,
+  .turn-back .turn-art,
+  .turn-forward .turn-text,
+  .turn-back .turn-text {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
   }
 }
 

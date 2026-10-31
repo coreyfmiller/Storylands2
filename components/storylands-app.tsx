@@ -108,12 +108,20 @@ export function StorylandsApp() {
               install doesn't open on a row of things nobody read. */}
           <ContinueRow bands={bands} onResume={openReader} />
 
+          {/* Series are shown at EVERY catalog size, unlike the tag rows.
+              SeriesRow used to live inside the richShelves branch, which needs
+              20 books in one band — so with eight books across four bands it had
+              never rendered once, and a series was a thing the data knew about
+              and the app never showed. It is also the one row that is never
+              redundant: it groups books by what connects them rather than
+              reshuffling the same covers under another heading. */}
+          <SeriesRow bands={bands} />
+
           {richShelves ? (
             <>
               {topShelves.map((shelf) => (
                 <StoryRow key={shelf.title} shelf={shelf} onOpen={openDetail} />
               ))}
-              <SeriesRow bands={bands} />
               {bottomShelves.map((shelf) => (
                 <StoryRow key={shelf.title} shelf={shelf} onOpen={openDetail} />
               ))}

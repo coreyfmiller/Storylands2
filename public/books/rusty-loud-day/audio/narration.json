@@ -272,16 +272,16 @@
     },
     "13": {
       "file": "books/rusty-loud-day/audio/page-13.mp3",
-      "bytes": 256128,
-      "duration": 16,
+      "bytes": 233088,
+      "duration": 14.5600004196167,
       "sentences": [
         {
           "start": 0,
-          "end": 3.1600000858306885
+          "end": 4
         },
         {
-          "start": 3.6600000858306885,
-          "end": 16
+          "start": 4.820000171661377,
+          "end": 14.5600004196167
         }
       ]
     }

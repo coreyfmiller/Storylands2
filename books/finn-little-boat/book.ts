@@ -265,7 +265,7 @@ const rawBook: Book = {
     },
     {
       page: 12,
-      text: `Finn looked back across the water he had crossed.\n\nIt still looked big. But now he knew a secret: even the biggest lake is only ever one small splash at a time.`,
+      text: `Finn looked back across the water he had crossed.\n\nIt still looked big. He tried to count all his splashes and lost track somewhere out past the reeds.`,
       art: '',
       manifest: {
         charactersPresent: ['finn'],
@@ -284,7 +284,7 @@ const rawBook: Book = {
     },
     {
       page: 13,
-      text: `After that, no adventure ever looked too big again.\n\nBecause Finn had learned the best thing a small duck can know: big dreams are just small splashes, one after another, all the way across.`,
+      text: `The dragonfly landed on his beak. "Where are we going tomorrow?" it buzzed.\n\nFinn looked out along the long bright shore, stretched his wings wide, and said, "Further."`,
       art: '',
       manifest: {
         charactersPresent: ['finn'],

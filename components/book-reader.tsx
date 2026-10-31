@@ -16,7 +16,8 @@ import {
   storyByReaderSlug,
   type Story,
 } from "@/lib/catalog"
-import { X, ChevronLeft, ChevronRight, RotateCcw, Volume2, VolumeX } from "lucide-react"
+import { X, ChevronLeft, ChevronRight, Lock, RotateCcw, Unlock, Volume2, VolumeX } from "lucide-react"
+import { UNLOCK_HOLD_MS, useChildLock } from "@/lib/child-lock"
 
 // The preferred phone size, and the floor it will shrink to. A page that has to
 // reach the floor is too long — see .kiro/steering/reader-layout.md.
@@ -195,11 +196,34 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
   const total = book.pages.length
   const bookSlug = slug ?? book.id
 
-  const go = useCallback(
-    (dir: 1 | -1) => setIndex((i) => Math.min(total, Math.max(COVER, i + dir))),
-    [total],
-  )
-  const restart = useCallback(() => setIndex(0), [])
+  /**
+   * Which way the reader is travelling, so the page turn has a direction.
+   *
+   * Without this the turn was a cross-fade, which reads as a slideshow — the old
+   * page dissolves into the new one and nothing appears to have moved. Paper
+   * arrives from a side, and going back has to arrive from the other one or
+   * tapping Previous feels like tapping Next.
+   *
+   * Tracked in state rather than derived from the index, because the index alone
+   * cannot tell a forward turn from a jump (resume, restart, start from the
+   * beginning). Those are deliberately forward.
+   */
+  const [turn, setTurn] = useState<1 | -1>(1)
+
+  const lock = useChildLock()
+
+  const go = useCallback((dir: 1 | -1) => {
+    setTurn(dir)
+    setIndex((i) => Math.min(total, Math.max(COVER, i + dir)))
+  }, [total])
+
+  /** Jump to a page that is not adjacent. Always reads as going forward. */
+  const jumpTo = useCallback((i: number) => {
+    setTurn(1)
+    setIndex(i)
+  }, [])
+
+  const restart = useCallback(() => jumpTo(0), [jumpTo])
 
   const stage = index === COVER ? "cover" : index >= total ? "end" : "page"
   const page = stage === "page" ? book.pages[index] : null
@@ -224,6 +248,7 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
   spokenIndex.current = index
   const onNarrationEnd = useCallback(() => {
     if (spokenIndex.current !== index) return
+    setTurn(1)
     setIndex((i) => (i === index ? Math.min(total, i + 1) : i))
   }, [index, total])
 
@@ -318,15 +343,55 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
           </>
         )}
 
-        {/* Top chrome: close, progress, read-aloud */}
+        {/* Top chrome: close or unlock, progress, read-aloud, lock */}
         <div className="pointer-events-none absolute inset-x-0 top-0 z-40 flex items-center gap-3 bg-gradient-to-b from-black/60 to-transparent px-4 pb-6 pt-3">
-          <Link
-            href="/"
-            aria-label="Close book"
-            className="pointer-events-auto grid h-11 w-11 place-items-center rounded-full bg-black/40 text-white/80 backdrop-blur transition-colors hover:text-white"
-          >
-            <X className="h-5 w-5" />
-          </Link>
+          {/* The close button is the first thing a small child brushes — it sits
+              exactly where a thumb rests on a two-handed grip. When locked it is
+              replaced by a press-and-hold, which a toddler cannot do because a
+              toddler taps. Page turns and read-aloud keep working throughout:
+              the lock removes the ways OUT, not the book. */}
+          {lock.locked ? (
+            <button
+              aria-label={`Hold to unlock, ${Math.round(UNLOCK_HOLD_MS / 100) / 10} seconds`}
+              onPointerDown={lock.holdStart}
+              onPointerUp={lock.holdCancel}
+              onPointerLeave={lock.holdCancel}
+              onPointerCancel={lock.holdCancel}
+              /* The browser's own long-press menu would appear over the top of
+                 an unlock hold on both iOS and Android. */
+              onContextMenu={(e) => e.preventDefault()}
+              className="pointer-events-auto relative grid h-11 w-11 touch-none select-none place-items-center rounded-full bg-black/40 text-white/80 backdrop-blur transition-colors hover:text-white"
+            >
+              <Lock className="h-5 w-5" />
+              {/* The ring fills as it is held, so an adult can see the gesture
+                  is working. Without it the first press reads as a dead button
+                  and nobody holds long enough to find out otherwise. */}
+              {lock.holding > 0 && (
+                <svg className="absolute inset-0 -rotate-90" viewBox="0 0 44 44" aria-hidden>
+                  <circle
+                    cx="22"
+                    cy="22"
+                    r="20"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeDasharray={2 * Math.PI * 20}
+                    strokeDashoffset={2 * Math.PI * 20 * (1 - lock.holding)}
+                    className="text-primary"
+                  />
+                </svg>
+              )}
+            </button>
+          ) : (
+            <Link
+              href="/"
+              aria-label="Close book"
+              className="pointer-events-auto grid h-11 w-11 place-items-center rounded-full bg-black/40 text-white/80 backdrop-blur transition-colors hover:text-white"
+            >
+              <X className="h-5 w-5" />
+            </Link>
+          )}
           <div className="flex-1">
             {stage === "page" && (
               <div
@@ -367,6 +432,21 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
               {aloud.on ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
             </button>
           )}
+
+          {/* Only offered while unlocked — locked, its job is done by the hold
+              control on the left, and two lock affordances would be a puzzle.
+              Hidden until `ready` so the stored state cannot flash the wrong
+              icon on first paint. */}
+          {lock.ready && !lock.locked && (
+            <button
+              onClick={lock.lock}
+              aria-label="Lock for a child, so the book cannot be closed by accident"
+              title="Lock for a child"
+              className="pointer-events-auto grid h-11 w-11 place-items-center rounded-full bg-black/40 text-white/80 backdrop-blur transition-colors hover:text-white"
+            >
+              <Unlock className="h-5 w-5" />
+            </button>
+          )}
         </div>
 
         {/* COVER */}
@@ -374,7 +454,7 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
           <div className="absolute inset-0 animate-fade-in">
             <button
               aria-label={resumeAt === null ? "Start reading" : "Keep reading"}
-              onClick={() => setIndex(resumeAt ?? 0)}
+              onClick={() => jumpTo(resumeAt ?? 0)}
               className="absolute inset-0 z-30 h-full w-full cursor-pointer"
             />
             <Image
@@ -400,7 +480,7 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
                 </>
               )}
               <button
-                onClick={() => setIndex(resumeAt ?? 0)}
+                onClick={() => jumpTo(resumeAt ?? 0)}
                 className="pointer-events-auto relative z-40 mt-8 rounded-full bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground transition-transform active:scale-95"
               >
                 {resumeAt === null ? "Start Reading" : `Keep Reading · page ${resumeAt + 1}`}
@@ -409,7 +489,7 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
                   of an unread book stays a single, obvious button. */}
               {resumeAt !== null && (
                 <button
-                  onClick={() => setIndex(0)}
+                  onClick={() => jumpTo(0)}
                   className="pointer-events-auto relative z-40 mt-3 min-h-11 rounded-full px-4 text-xs text-white/70 underline underline-offset-4 transition-colors hover:text-white"
                 >
                   Start from the beginning
@@ -428,13 +508,17 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
             every turn would re-measure all thirteen pages every time. The key
             sits on the image and the prose, which is what needs to re-animate. */}
         {stage === "page" && page && (
-          <div className="reader-page absolute inset-0 flex flex-col bg-[#f4e9d6]">
+          <div
+            className={`reader-page absolute inset-0 flex flex-col bg-[#f4e9d6] ${
+              turn === 1 ? "turn-forward" : "turn-back"
+            }`}
+          >
             {/* The served file is already cropped to this region's exact shape
                 by optimize-books.mjs, so object-cover has nothing left to trim.
                 See READER_ART_ASPECT in books/types.ts. */}
             <div
               key={page.page}
-              className="reader-art relative min-h-0 flex-[9] overflow-hidden bg-black animate-fade-in"
+              className="reader-art turn-art relative min-h-0 flex-[9] overflow-hidden bg-black"
             >
               {page.art && !artFailed ? (
                 <Image
@@ -467,12 +551,16 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
               ref={setBox}
               className="reader-text relative z-20 flex min-h-0 flex-[11] items-center justify-center overflow-hidden bg-[#f4e9d6] px-6 pb-20 pt-5"
             >
-              <PageText
-                key={page.page}
-                segments={segments}
-                speaking={aloud.on ? aloud.speaking : -1}
-                size={size}
-              />
+              {/* turn-text, not turn-art: the prose travels a shorter distance
+                  and starts a beat later, which is what makes the turn read as
+                  one sheet settling rather than two things sliding in parallel. */}
+              <div key={page.page} className="turn-text flex w-full items-center justify-center">
+                <PageText
+                  segments={segments}
+                  speaking={aloud.on ? aloud.speaking : -1}
+                  size={size}
+                />
+              </div>
 
               {/* The measuring surface. It overlays the real panel and carries
                   the same padding, so the probe wraps at exactly the width the
@@ -499,7 +587,12 @@ export function BookReader({ book, slug }: { book: Book; slug?: string }) {
         {/* END */}
         {stage === "end" && (
           <div className="absolute inset-0 overflow-y-auto bg-background animate-fade-in">
-            <EndCard book={book} slug={bookSlug} onRestart={restart} />
+            <EndCard
+              book={book}
+              slug={bookSlug}
+              onRestart={restart}
+              locked={lock.locked}
+            />
           </div>
         )}
 
@@ -543,10 +636,13 @@ function EndCard({
   book,
   slug,
   onRestart,
+  locked,
 }: {
   book: Book
   slug: string
   onRestart: () => void
+  /** When locked, every route OUT of the reader is withheld. See lib/child-lock.ts. */
+  locked: boolean
 }) {
   const next = useMemo(() => nextBookAfter(slug), [slug])
   // "Book 2 of 3" under The End, so finishing one book tells a child there are
@@ -604,12 +700,18 @@ function EndCard({
           <RotateCcw className="h-4 w-4" />
           Read {book.title.split(" ")[0]} again
         </button>
-        <Link
-          href="/"
-          className="min-h-11 px-4 text-sm leading-[2.75rem] text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
-        >
-          Back to Storylands
-        </Link>
+        {/* Withheld while locked. Guarding only the close button in the top
+            chrome would have been security by inattention: the end card is the
+            screen a child reaches on their own, and it had a link straight back
+            to the shelf sitting on it. */}
+        {!locked && (
+          <Link
+            href="/"
+            className="min-h-11 px-4 text-sm leading-[2.75rem] text-muted-foreground underline underline-offset-4 transition-colors hover:text-foreground"
+          >
+            Back to Storylands
+          </Link>
+        )}
       </div>
     </div>
   )

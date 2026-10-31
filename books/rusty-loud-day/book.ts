@@ -283,7 +283,7 @@ const rawBook: Book = {
     },
     {
       page: 13,
-      text: `The day had been big and loud and a lot.\n\nBut Rusty had learned something: even the biggest feelings get smaller when you are gentle — and kindness, it turns out, makes the whole world feel just the right size.`,
+      text: `The day had been big and loud and a lot.\n\nNow it was lantern light, and a small warm weight against his side, and the drums somewhere far away where they belonged.`,
       art: '',
       manifest: {
         charactersPresent: ['rusty'],

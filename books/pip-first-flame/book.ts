@@ -283,7 +283,7 @@ const rawBook: Book = {
     },
     {
       page: 13,
-      text: `And every Lantern Festival after that, a small golden glow-moth would find Pip in the crowd — and light its way to him.\n\nBecause Pip's flame was small. But his heart was the biggest in the valley.`,
+      text: `And every Lantern Festival after that, a small golden glow-moth would find Pip in the crowd and light its way to him.\n\nIt never once went to the biggest flame. It came to the warm one.`,
       art: '',
       manifest: {
         charactersPresent: ['pip'],
