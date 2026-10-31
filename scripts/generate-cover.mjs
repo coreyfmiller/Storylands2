@@ -105,6 +105,14 @@ function coverPrompt(book, bios, cast) {
     `It must show ${who}, exactly on-model with the reference image(s) provided.`,
     `The story: ${book.subtitle}`,
     `It opens in ${first?.location ?? 'the setting'} and ends in ${last?.location ?? 'the same world'}.`,
+    // Page one's required facts, because they carry the continuity: the full
+    // character description and the key props. Without them Oliver's cover came
+    // back with a RED ball on a book whose every page says the ball is blue --
+    // the forbidden facts were being passed and the required ones were not, so
+    // the cover could avoid everything the book bans and still contradict it.
+    first?.requiredVisualFacts?.length
+      ? `These facts must hold on the cover exactly as they do inside the book: ${first.requiredVisualFacts.join('; ')}.`
+      : '',
     'Compose it as a cover: the character or characters large and central in the lower two thirds, looking out or into the scene, with the setting readable behind them and GENEROUS EMPTY SKY OR SPACE ACROSS THE TOP THIRD where a title will be placed later.',
     'The top third must be simple and uncluttered — sky, canopy, mist, water — with nothing important in it.',
     seasons.length ? `The book is set at: ${seasons.join('; ')}. The cover must show that season and that light, not a generic sunny day.` : '',

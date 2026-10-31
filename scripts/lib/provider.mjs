@@ -91,8 +91,47 @@ function geminiKey() {
   return key
 }
 
+/**
+ * How long any single API call may take before it is abandoned.
+ *
+ * There was no timeout at all, on any of the three call sites, so a request that
+ * never answers blocked forever. That is not hypothetical: authoring one 8-page
+ * board book sat on "attempt 1/3" for nine minutes with nothing to show and no
+ * way to tell a slow model from a dead socket.
+ *
+ * Generous on purpose. A 13-page book with a strict schema genuinely takes a
+ * couple of minutes to write and an image takes about ninety seconds, so a tight
+ * timeout would abandon work that was going to succeed. Five minutes is well
+ * past anything that has ever completed here.
+ */
+const CALL_TIMEOUT_MS = Number(process.env.STORYLANDS_TIMEOUT_MS ?? 5 * 60 * 1000)
+
+/**
+ * fetch, with a deadline and an error that says which call ran out.
+ *
+ * AbortController rather than Promise.race, so the socket is actually closed
+ * rather than left open while we stop waiting for it.
+ */
+async function fetchWithTimeout(label, url, init) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), CALL_TIMEOUT_MS)
+  try {
+    return await fetch(url, { ...init, signal: controller.signal })
+  } catch (e) {
+    if (e?.name === 'AbortError') {
+      throw new Error(
+        `${label} did not answer within ${Math.round(CALL_TIMEOUT_MS / 1000)}s. ` +
+          'Re-run to try again, or raise STORYLANDS_TIMEOUT_MS.',
+      )
+    }
+    throw e
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 async function geminiCall(model, body) {
-  const res = await fetch(`${GEMINI_BASE}/${model}:generateContent?key=${geminiKey()}`, {
+  const res = await fetchWithTimeout('gemini', `${GEMINI_BASE}/${model}:generateContent?key=${geminiKey()}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
@@ -203,7 +242,7 @@ function openaiError(status, text) {
 }
 
 async function openaiJSON({ system, user, schema, maxOutputTokens }) {
-  const res = await fetch('https://api.openai.com/v1/responses', {
+  const res = await fetchWithTimeout('openai text', 'https://api.openai.com/v1/responses', {
     method: 'POST',
     headers: { Authorization: `Bearer ${openaiKey()}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -251,7 +290,7 @@ async function openaiImage({ prompt, referencePaths, aspectRatio = '9:16' }) {
     const mime = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : 'image/jpeg'
     form.append('image[]', new Blob([buf], { type: mime }), path.basename(p))
   }
-  const res = await fetch('https://api.openai.com/v1/images/edits', {
+  const res = await fetchWithTimeout('openai image', 'https://api.openai.com/v1/images/edits', {
     method: 'POST',
     headers: { Authorization: `Bearer ${openaiKey()}` },
     body: form,

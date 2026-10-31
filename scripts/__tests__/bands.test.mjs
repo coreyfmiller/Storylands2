@@ -340,3 +340,62 @@ describe('structural rules switch off where they do not apply', () => {
     }
   })
 })
+
+describe('a refrain can be as short as a toddler needs', () => {
+  /** A toddler book carrying `refrain` on the pages given. */
+  function withRefrain(refrain, onPages) {
+    const book = bookFor('toddler')
+    book.pages.forEach((p, i) => {
+      const base = words(14, 'lantern', i)
+      p.text = onPages.includes(i + 1) ? `${base}\n\n${refrain}` : base
+    })
+    // Keep the band's other strict rules satisfied.
+    book.pages[2].text += ' \u201cWhere did it go?\u201d he said.'
+    book.pages[3].text += ' \u201cThere you are,\u201d he said.'
+    return book
+  }
+
+  test('a two-sentence refrain of two-word halves counts', () => {
+    // "Still there. Still stuck." is a correct toddler refrain. The first
+    // version of this rule split on sentences and required three words, so both
+    // halves were discarded and a book that repeated it four times was rejected
+    // three times running for having no refrain.
+    const book = withRefrain('Still there. Still stuck.', [2, 4, 6, 8])
+    const { errors } = check(book, { strict: true })
+    assert.ok(
+      !errors.some((e) => /refrain/.test(e)),
+      `rejected a real refrain: ${errors.join(' | ')}`,
+    )
+  })
+
+  test('a single short sentence counts', () => {
+    const book = withRefrain('Not yet.', [2, 5, 8])
+    const { errors } = check(book, { strict: true })
+    assert.ok(!errors.some((e) => /refrain/.test(e)), errors.join(' | '))
+  })
+
+  test('a one-word repeat is a sound effect, not a refrain', () => {
+    const book = withRefrain('Oof.', [2, 4, 6, 8])
+    const { errors } = check(book, { strict: true })
+    assert.ok(
+      errors.some((e) => /refrain/.test(e)),
+      'a single repeated word should not satisfy the rule',
+    )
+  })
+
+  test('a refrain on only two pages is not enough', () => {
+    const book = withRefrain('Still there. Still stuck.', [3, 7])
+    const { errors } = check(book, { strict: true })
+    assert.ok(errors.some((e) => /refrain/.test(e)), errors.join(' | '))
+  })
+
+  test('the same line twice on one page does not count twice', () => {
+    const book = withRefrain('Still there. Still stuck.', [4])
+    book.pages[3].text += '\n\nStill there. Still stuck.'
+    const { errors } = check(book, { strict: true })
+    assert.ok(
+      errors.some((e) => /refrain/.test(e)),
+      'a refrain must come back after a page turn, not repeat on one page',
+    )
+  })
+})

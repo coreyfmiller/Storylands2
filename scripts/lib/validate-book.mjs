@@ -444,25 +444,52 @@ export function validateBook({ book, refs = {}, bios = {}, strict = false, band 
   // tic — so it has to be a band rule rather than a global one, or the two
   // checks would contradict each other.
   if (R.refrain) {
-    const lines = new Map()
+    /**
+     * Candidate refrains on one page: whole paragraphs AND single sentences.
+     *
+     * Both, because a refrain takes either shape. "Goodnight, little light." is
+     * one sentence; "Still there. Still stuck." is a two-sentence paragraph
+     * whose halves are two words each.
+     *
+     * That second case is why this looks at paragraphs at all. The first version
+     * only split on sentence boundaries and required three words, so a correct
+     * toddler refrain of two short sentences became two 2-word fragments, both
+     * discarded — and a book that had faithfully repeated its refrain four times
+     * was rejected three times in a row for not having one. A toddler refrain is
+     * SUPPOSED to be tiny.
+     *
+     * Two words is the floor. One word ("Hush.") repeating is a sound effect,
+     * not a line a child joins in with.
+     */
+    const candidatesOf = (text) => {
+      const out = new Set()
+      const norm = (s) => s.trim().toLowerCase().replace(/\s+/g, ' ')
+      for (const para of String(text ?? '').split(/\n\s*\n+/)) {
+        const whole = norm(para)
+        if (wordCount(whole) >= 2) out.add(whole)
+        for (const sentence of para.split(/(?<=[.!?])\s+/)) {
+          const line = norm(sentence)
+          if (wordCount(line) >= 2) out.add(line)
+        }
+      }
+      return out
+    }
+
+    const pagesWith = new Map()
     for (const p of pages) {
-      // Per page, not per occurrence: a refrain twice on one page is emphasis,
-      // not a refrain. It has to come back after a page turn.
-      const seen = new Set()
-      for (const raw of String(p.text ?? '').split(/(?<=[.!?])\s+|\n+/)) {
-        const line = raw.trim().toLowerCase().replace(/\s+/g, ' ')
-        // Short interjections repeat by accident; a refrain is a real line.
-        if (wordCount(line) < 3 || seen.has(line)) continue
-        seen.add(line)
-        lines.set(line, (lines.get(line) ?? 0) + 1)
+      // Counted per PAGE, not per occurrence: a refrain twice on one page is
+      // emphasis. A refrain has to come back after a page turn.
+      for (const line of candidatesOf(p.text)) {
+        pagesWith.set(line, (pagesWith.get(line) ?? 0) + 1)
       }
     }
-    const best = [...lines.entries()].sort((a, b) => b[1] - a[1])[0]
+
+    const best = [...pagesWith.entries()].sort((a, b) => b[1] - a[1])[0]
     const MIN_REFRAIN_PAGES = 3
     if (!best || best[1] < MIN_REFRAIN_PAGES) {
       fail(
         `no line repeats word-for-word across at least ${MIN_REFRAIN_PAGES} pages; a ${spec.label} book needs a refrain the child can join in with` +
-          (best ? ` (the most repeated line appears on ${best[1]})` : ''),
+          (best ? ` (the most repeated line, "${best[0]}", appears on ${best[1]})` : ''),
       )
     }
   }

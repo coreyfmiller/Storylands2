@@ -75,6 +75,54 @@ export type Series = {
 
 export const stories: Story[] = [
   {
+    id: "olivers-ball-under-the-chair",
+    title: "Oliver’s Ball Under the Chair",
+    kicker: "A Storylands Original",
+    hook: "A ball, a chair, and three tries that do not work.",
+    synopsis:
+      "Oliver's squeaky ball rolls under the big armchair and stops just out of reach. He tries a paw. He tries his nose. He tries wriggling right under, until his fluffy shoulders stop him. Still there. Still stuck. Then he walks round to the other side of the chair.",
+    readerSlug: "olivers-ball-under-the-chair",
+    // Promoted: the first book in the toddler band. Until this and the board
+    // book landed, ages 0-3 were being shown 4-6 books as a fallback, because
+    // bandsForAge refuses to hand anybody an empty shelf.
+    landscape: "/books/olivers-ball-under-the-chair/cover.webp",
+    portrait: "/books/olivers-ball-under-the-chair/cover.webp",
+    ages: "Ages 2–4",
+    targetAge: 4,
+    band: "toddler",
+    minutes: 4,
+    genres: ["Comedy"],
+    tags: ["funny", "quick"],
+    glow: "oklch(0.8 0.14 55)",
+    tint: "oklch(0.34 0.06 40)",
+  },
+  {
+    id: "goodnight-little-light",
+    title: "Goodnight, Little Light",
+    kicker: "A Storylands Original",
+    hook: "One warm thing at a time, until everything is asleep.",
+    synopsis:
+      "Pip says goodnight to the lantern valley one warm thing at a time: a lantern, the river, a sleepy bird, and his own small flame. Each one makes its own soft sound, and the same line comes back on every other page for someone small to say along with you.",
+    readerSlug: "goodnight-little-light",
+    // Promoted: the first book in the baby band.
+    landscape: "/books/goodnight-little-light/cover.webp",
+    portrait: "/books/goodnight-little-light/cover.webp",
+    ages: "Ages 0–2",
+    targetAge: 2,
+    band: "baby",
+    minutes: 2,
+    genres: ["Heart"],
+    tags: ["cozy", "quick"],
+    // No series. The registrar copied `seriesId: "pip"` off Pip's existing
+    // entry, because series membership is inherited from whichever book shares
+    // the character when the book does not state one. Lantern Valley is a 4-6
+    // series, so that would have made a board book "book 3 of 3" and let
+    // nextInSeries walk a six-year-old from a picture book onto a board book.
+    // A shared character is not a shared series.
+    glow: "oklch(0.82 0.13 68)",
+    tint: "oklch(0.32 0.07 265)",
+  },
+  {
     id: "tillys-winter-map",
     title: "Tilly’s Winter Map",
     kicker: "A Storylands Original",
