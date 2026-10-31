@@ -1,0 +1,31 @@
+{
+  "id": "pip",
+  "name": "Lantern Valley",
+  "world": "a narrow green valley at dusk, lit by hand: paper lanterns hung along the paths and floating on the river, a single-arch stone footbridge, pollarded willows leaning over the water, a stone lantern house at the inlet, and snow-capped mountains closing the far end",
+  "palette": "deep dusk blues and violets in the sky, warm amber and honey-gold lantern light pooling on everything it touches, dark green conifers, pale stone",
+  "light": "always near dusk or after dark. The light sources are lanterns and a low sun, never overhead daylight. Shadows are long and soft; lantern glow is the warmest thing in every frame",
+  "recurring": [
+    "paper lanterns, round and ribbed, with a candle inside",
+    "Lumi's star-shaped lantern on a brass frame",
+    "the single-arch stone footbridge over the river",
+    "the stone lantern house at the water's inlet",
+    "willows and reeds at the water's edge"
+  ],
+  "forbidden": [
+    "electric or modern lighting of any kind",
+    "bright midday sun or flat overhead daylight",
+    "a wide lake or open sea; this is a river in a narrow valley",
+    "deciduous autumn woodland, which belongs to The Crooked Root"
+  ],
+  "notes": [
+    "Written after three books were generated independently and only the",
+    "CHARACTERS were held consistent. Palette, light and environment were",
+    "re-invented per book, so the valley drifted: one book's river is a broad",
+    "bright lake, another's is a frozen stream at sunset. A series a child",
+    "returns to has to be the same place each time -- that is most of what",
+    "makes it a place at all.",
+    "",
+    "This is injected into every page prompt of every book in the series, the",
+    "same way a character bible is. See seriesWorld() in compile-prompt.mjs."
+  ]
+}

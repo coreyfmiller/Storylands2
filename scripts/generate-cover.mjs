@@ -29,7 +29,7 @@ import { createRequire } from 'node:module'
 import { loadEnv } from './lib/load-env.mjs'
 import { getImageProvider } from './lib/provider.mjs'
 import { loadBook, ASSETS_DIR, PUBLIC_DIR } from './lib/book-source.mjs'
-import { styleFor } from './lib/compile-prompt.mjs'
+import { seriesWorld, styleFor } from './lib/compile-prompt.mjs'
 
 const require = createRequire(import.meta.url)
 const sharp = require('sharp')
@@ -69,7 +69,7 @@ async function exists(p) {
  * character portrait, so the cover is about this story. A cover that could head
  * any book in the series is the thing being replaced.
  */
-function coverPrompt(book, bios, cast) {
+function coverPrompt(book, bios, cast, world = null) {
   const first = book.pages[0]?.manifest
   const last = book.pages[book.pages.length - 1]?.manifest
 
@@ -99,6 +99,7 @@ function coverPrompt(book, bios, cast) {
 
   return [
     styleFor(book.band ?? 'young'),
+    seriesWorld(world),
     // Override the landscape clause from the shared style: a cover is portrait.
     'IMPORTANT OVERRIDE: this image is PORTRAIT, taller than it is wide, composed as a book cover rather than as a page illustration. Ignore any instruction above about horizontal composition.',
     `This is the COVER of a children's picture book called "${book.title}".`,
@@ -188,7 +189,22 @@ async function main() {
     }
   }
 
-  const prompt = coverPrompt(book, bios, cast)
+  // The cover is the first thing anyone sees of a series, so it has to obey the
+  // world lock too — a cover in a different palette than the pages reads as a
+  // different book.
+  let world = null
+  if (book.seriesId) {
+    try {
+      world = JSON.parse(
+        await readFile(path.join(ASSETS_DIR, 'series', `${book.seriesId}.json`), 'utf8'),
+      )
+      console.log(`World: ${world.name}`)
+    } catch {
+      // No bible for this series yet. Normal.
+    }
+  }
+
+  const prompt = coverPrompt(book, bios, cast, world)
   console.log(`Images: ${provider.name} / ${provider.model}`)
   console.log(`Cover for "${book.title}" — cast: ${cast.join(' + ')}\n`)
 

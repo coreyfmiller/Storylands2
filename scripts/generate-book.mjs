@@ -26,7 +26,7 @@
 // re-run fills the gaps. Output is public/books/<slug>/pages/page-NN.png, which
 // must then be converted by scripts/optimize-books.mjs before the app serves it.
 
-import { writeFile, mkdir, access } from 'node:fs/promises'
+import { writeFile, mkdir, access, readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { getImageProvider } from './lib/provider.mjs'
 import { loadBook, bookSlugs, manifestsOf, ASSETS_DIR, PUBLIC_DIR } from './lib/book-source.mjs'
@@ -80,7 +80,7 @@ async function pool(items, limit, worker) {
   return results
 }
 
-async function generateOne({ slug, manifest, bios, refs, outDir, provider, band }) {
+async function generateOne({ slug, manifest, bios, refs, outDir, provider, band, world }) {
   const name = `page-${String(manifest.page).padStart(2, '0')}.png`
   const pngPath = path.join(outDir, name)
   // A page is done if either the render OR the WebP the app serves is present.
@@ -91,7 +91,7 @@ async function generateOne({ slug, manifest, bios, refs, outDir, provider, band 
     return { page: manifest.page, status: 'skip' }
   }
 
-  const prompt = compilePrompt(manifest, bios, band)
+  const prompt = compilePrompt(manifest, bios, band, world)
   if (DRY) {
     console.log(`\n--- ${slug} page ${manifest.page} (${manifest.charactersPresent.join('+')}) ---`)
     console.log(prompt)
@@ -127,8 +127,27 @@ async function generateOne({ slug, manifest, bios, refs, outDir, provider, band 
   }
 }
 
+/**
+ * A series' world bible, or null for a standalone book.
+ *
+ * Absent is normal and must stay silent: most books are not in a series, and
+ * the two that are only got bibles after the fact. A missing file means "no
+ * world lock", not an error.
+ */
+async function loadSeriesWorld(seriesId) {
+  if (!seriesId) return null
+  const file = path.join(ASSETS_DIR, 'series', `${seriesId}.json`)
+  try {
+    return JSON.parse(await readFile(file, 'utf8'))
+  } catch {
+    return null
+  }
+}
+
 async function runBook(slug, provider) {
   const { book, refs, bios } = await loadBook(slug)
+  const world = await loadSeriesWorld(book.seriesId)
+  if (world) console.log(`  world: ${world.name} (assets/series/${book.seriesId}.json)`)
 
   // Validate before spending anything. A book with a missing CHARACTER_REFS entry
   // would fail on every page, one paid call at a time.
@@ -172,7 +191,7 @@ async function runBook(slug, provider) {
 
   console.log(`\n${slug}: ${book.title} — ${manifests.length} page(s)`)
   const results = await pool(manifests, DRY ? 1 : CONCURRENCY, (manifest) =>
-    generateOne({ slug, manifest, bios, refs, outDir, provider, band: book.band }),
+    generateOne({ slug, manifest, bios, refs, outDir, provider, band: book.band, world }),
   )
 
   const ok = results.filter((r) => r.status === 'ok').length

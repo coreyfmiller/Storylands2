@@ -104,11 +104,45 @@ function castSentence(cast, bios) {
  * @param {Record<string,string>} bios
  * @param {string} [band]    the book's band, which sets the age clause in STYLE
  */
-export function compilePrompt(manifest, bios = {}, band = 'young') {
+/**
+ * The series' world, as prompt text.
+ *
+ * Characters have been held consistent since the beginning, by seeding every
+ * page with an approved reference image. The WORLD never was: palette, light
+ * and environment were re-invented per book, so across three Lantern Valley
+ * books the river has been a broad bright lake, a frozen stream at sunset, and
+ * a narrow dusk waterway. A series a child comes back to has to be the same
+ * place each time — being the same place is most of what makes it a place.
+ *
+ * @param {object|null} world a parsed assets/series/<id>.json, or null
+ */
+export function seriesWorld(world) {
+  if (!world) return ''
+  const parts = [
+    `This book belongs to the series "${world.name}", and every page must be unmistakably the same place.`,
+    world.world ? `THE PLACE: ${world.world}.` : '',
+    world.palette ? `PALETTE: ${world.palette}.` : '',
+    world.light ? `LIGHT: ${world.light}.` : '',
+    world.recurring?.length
+      ? `Recurring things in this world, drawn the same way every time they appear: ${world.recurring.join('; ')}.`
+      : '',
+    // The forbidden list is what actually keeps two series apart. Without it the
+    // models happily put paper lanterns in the oak clearing.
+    world.forbidden?.length
+      ? `NEVER in this world: ${world.forbidden.join('; ')}.`
+      : '',
+  ]
+  return parts.filter(Boolean).join(' ')
+}
+
+export function compilePrompt(manifest, bios = {}, band = 'young', world = null) {
   const m = manifest
   const framing = framingFor(m.shotType)
   return [
     styleFor(band),
+    // Before the cast, because the world is the stage they stand on and the
+    // page-specific scene below should read as a refinement of both.
+    seriesWorld(world),
     castSentence(m.charactersPresent, bios),
     `Scene: ${m.action}.`,
     `Setting: ${m.location}, ${m.timeOfDay}.`,

@@ -1,0 +1,28 @@
+{
+  "id": "crooked-root",
+  "name": "The Crooked Root",
+  "world": "one clearing in an old deciduous wood, dominated by the exposed crooked root of a great tree -- a thick elbow of wood arching out of the earth with a sheltered hollow beneath it. Around it: leaf litter and acorns, a flat grey stone, a hollow of curled ferns, a forked birch, and a low branch overhanging the middle",
+  "palette": "russet and ochre leaf litter, warm mid-brown bark, mossy greens, and in winter a cold blue-white snow over all of it with the browns showing through",
+  "light": "bright, low, raking daylight through bare or thinning branches, throwing long tree-shadows across the clearing floor. Autumn mornings and frosty winter middays. Never lantern-lit and never night",
+  "recurring": [
+    "the great crooked root with its elbow-shaped bend and the hollow underneath",
+    "the flat grey stone",
+    "the fern hollow, ferns curled like small closed umbrellas",
+    "the forked birch",
+    "the low branch over the middle of the clearing",
+    "acorns and hazelnuts on the ground"
+  ],
+  "forbidden": [
+    "paper lanterns or hung lights, which belong to Lantern Valley",
+    "night scenes or dusk; this clearing is seen by day",
+    "conifer forest or mountains",
+    "water larger than a puddle or a thaw-trickle"
+  ],
+  "notes": [
+    "Nibs and Tilly share one clearing across two books, and the landmarks are",
+    "load-bearing: Tilly's whole story is that she has every hiding place",
+    "mapped, and a map of a place that looks different each book is worth",
+    "nothing. The crooked root is named in both titles' worth of prose and has",
+    "to be recognisably the same object."
+  ]
+}
