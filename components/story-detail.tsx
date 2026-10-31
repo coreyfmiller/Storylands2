@@ -3,9 +3,30 @@
 import { useState } from "react"
 import Image from "next/image"
 import type { Story } from "@/lib/catalog"
-import { storyById, stories, thumbOf } from "@/lib/catalog"
+import { hasPaintedTitle, storyById, stories, thumbOf } from "@/lib/catalog"
 import { StoryMeta } from "@/components/story-card"
-import { Play, Plus, Check } from "lucide-react"
+import { Play, Repeat } from "lucide-react"
+import { timesFinished, useProgress } from "@/lib/progress"
+import { BANDS } from "@/lib/bands"
+
+/**
+ * What a book of each band is like, in a parent's terms.
+ *
+ * The band spec's `spine` is written at an authoring model and reads like a
+ * brief; this is the same information for somebody choosing a book at bedtime.
+ * Kept short and concrete, and deliberately honest about what a board book is
+ * NOT — a parent who opens an eight-page naming book expecting a story will
+ * think the app is broken rather than that they picked the wrong shelf.
+ */
+const BAND_SHAPE: Record<string, string> = {
+  baby: "A naming book, not a story. One thing to point at on each page, a sound to make, and the same line coming back for someone small to say with you. Nothing goes wrong and it ends asleep.",
+  toddler:
+    "One simple want and one thing in the way. Three tries that do not work, with a line that repeats each time, and a fourth that does. Noises carry the jokes.",
+  young:
+    "A proper story: someone wants something, a friend turns up and asks the question that changes it, something goes genuinely wrong, and putting it right costs them something. It never explains itself on the last page.",
+  middle:
+    "Longer, and driven by what the characters say to each other. Somebody is confidently wrong at the start and finds out, and a second thread runs underneath and pays off near the end.",
+}
 
 export function StoryDetail({
   story,
@@ -18,7 +39,8 @@ export function StoryDetail({
   onBegin: (s: Story) => void
   onOpen: (s: Story) => void
 }) {
-  const [saved, setSaved] = useState(false)
+  const { progress } = useProgress()
+  const readings = story.readerSlug ? timesFinished(progress[story.readerSlug]) : 0
 
   const related = stories
     .filter(
@@ -29,9 +51,14 @@ export function StoryDetail({
     )
     .slice(0, 3)
 
-  // Ages 4–7 covers are tall 9:16 with the title painted into the art. Show the whole
-  // cover (no wide crop) and don't overlay a second title.
-  const paintedCover = story.band === "young"
+  // Painted covers are tall 9:16 with the title already in the art, so show the
+  // whole cover without a wide crop and never overlay a second title.
+  //
+  // This was `story.band === "young"`, which was true while every 4-6 cover was
+  // a painted character portrait and wrong the moment a book got a textless
+  // cover of its own — those books' titles stopped being drawn anywhere. It is
+  // derived from the cover path now, in one place, next to the reader's version.
+  const paintedCover = hasPaintedTitle(story)
 
   return (
     <div className="overflow-hidden rounded-none bg-card shadow-2xl sm:rounded-xl">
@@ -96,30 +123,58 @@ export function StoryDetail({
             <Play className="h-4 w-4 fill-current" />
             {resuming ? "Continue Story" : "Begin Story"}
           </button>
-          <button
-            onClick={() => setSaved((s) => !s)}
-            aria-pressed={saved}
-            className="inline-flex items-center gap-2 rounded-md px-5 py-3 text-sm font-semibold ring-1 ring-border transition-colors hover:bg-white/5"
-          >
-            {saved ? (
-              <Check className="h-4 w-4 text-primary" />
-            ) : (
-              <Plus className="h-4 w-4" />
-            )}
-            {saved ? "In My Stories" : "Add to My Stories"}
-          </button>
+          {/* "Add to My Stories" used to sit here. It was a useState(false)
+              with nothing behind it — no storage, no list, no screen that ever
+              showed the result — so it claimed to save something and saved
+              nothing. A control that lies about persisting is worse than no
+              control.
+              The honest version already exists and needs no button: the
+              "Read it again" row is built from books actually read to the end
+              more than once, which is a real preference rather than a declared
+              one. */}
         </div>
+
+        {/* How many times this one has been asked for. Shown only once it has
+            genuinely happened — a parent seeing "read 7 times" is being told
+            something true about their own child. */}
+        {readings >= 2 && (
+          <p className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-foreground/80">
+            <Repeat className="h-3 w-3" aria-hidden />
+            Read {readings} times
+          </p>
+        )}
 
         <div className="mt-6 grid gap-6 sm:grid-cols-[1fr_auto] sm:gap-10">
           <div>
             <p className="max-w-xl text-[15px] leading-relaxed text-muted-foreground">
               {story.synopsis}
             </p>
+
+            {/* What this band's books are LIKE, which is the question a parent
+                is actually asking when they look at "Ages 0-2" and wonder
+                whether it is a story or a naming book. Taken from the band's
+                own spine, so it describes what the validator enforced. */}
+            <p className="mt-4 max-w-xl text-[13px] leading-relaxed text-foreground/70">
+              <span className="font-semibold text-foreground/90">
+                {BANDS[story.band].label}:
+              </span>{" "}
+              {BAND_SHAPE[story.band]}
+            </p>
           </div>
           <dl className="grid h-fit gap-3 border-t border-border pt-5 text-sm sm:min-w-44 sm:border-l sm:border-t-0 sm:pl-8 sm:pt-0">
             <Detail label="Ages" value={story.ages.replace("Ages ", "")} />
             <Detail label="Length" value={`${story.minutes} min`} />
             <Detail label="Genre" value={story.genres.join(", ")} />
+            {/* The shape of the book, for a parent deciding at bedtime. These
+                come from the band, so they cannot disagree with what the book
+                was actually written and validated against. `targetAge` has been
+                stored on every story since the beginning and read by nothing
+                until now. */}
+            <Detail label="Pages" value={`${BANDS[story.band].pages.target}`} />
+            <Detail
+              label="Words a page"
+              value={`about ${BANDS[story.band].words.target}`}
+            />
           </dl>
         </div>
 

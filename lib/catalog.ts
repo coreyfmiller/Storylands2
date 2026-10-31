@@ -433,6 +433,25 @@ export function storyById(id: string) {
  * scripts/optimize-art.mjs. `/characters/` was missing here, which is why the
  * 32px avatar in the nav was downloading the full-size cover.
  */
+/**
+ * Whether this story's cover already has its title painted into the artwork.
+ *
+ * Derived from the path, which is the one thing that actually distinguishes the
+ * two kinds: `/characters/<id>.webp` is a painted character portrait carrying
+ * that character's NAME, while `/books/<id>/cover.webp` is a textless cover
+ * generated for one book. Anything drawing a title over a cover must ask this
+ * first.
+ *
+ * The detail modal was deciding with `story.band === "young"`, which was true
+ * while every 4-6 cover was a painted portrait and became wrong the moment a
+ * book got a textless cover of its own — those books' titles stopped being
+ * drawn anywhere at all. `bookCoverArt` answers the same question for the
+ * reader, from the book; this is the catalog-side half.
+ */
+export function hasPaintedTitle(story: Story): boolean {
+  return (story.portrait || story.landscape).startsWith("/characters/")
+}
+
 export function thumbOf(src: string) {
   return (
     src
