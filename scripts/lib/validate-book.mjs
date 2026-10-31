@@ -220,10 +220,25 @@ export function validateBook({ book, refs = {}, bios = {}, strict = false, band 
   // A subtitle should describe the CHARACTER or tease the situation.
   if (book?.subtitle) {
     const hit = preachyHit(book.subtitle)
+    // Aphorism shapes, widened after a generated subtitle got through.
+    //
+    // "A little help leaves room for finding." passed every rule above and is
+    // exactly what this check exists to stop: a sentence about what the story
+    // MEANS, which can only ever describe one book. The pattern it added is the
+    // general one — an abstract noun as the subject of a present-tense verb,
+    // stated as a truth. Compare the subtitles that work, which name a character
+    // or tease a situation: "A small dragon with a big heart.", "Big ideas.
+    // Slightly questionable plans.", "One enormous plan. One very small pond."
+    const ABSTRACT =
+      'help|kindness|love|courage|bravery|friendship|sharing|patience|hope|trust|honesty|a little light|small things|little things|big feelings|big dreams'
     const aphorism =
       /\b(?:begins with|starts with|is just|are just|goes a long way|makes? (?:the|a) (?:whole |bigger |world))\b/i.exec(
         book.subtitle,
-      )
+      ) ??
+      new RegExp(
+        `\\b(?:${ABSTRACT})\\b[^.]{0,40}\\b(?:leaves|makes|means|brings|finds|grows|wins|opens|changes|is|are)\\b`,
+        'i',
+      ).exec(book.subtitle)
     if (hit || aphorism) {
       fail(
         `the subtitle states the story's point ("${(hit ?? aphorism)[0]}") — a subtitle should describe the character or tease the situation, so it still works for their next book`,

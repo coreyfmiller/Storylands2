@@ -1,0 +1,55 @@
+{
+  "id": "tilly",
+  "name": "Tilly",
+  "species": "owl",
+  "tagline": "Asks the question nobody thought of.",
+  "bio": "Tilly, a small brown owl: soft mottled brown and buff feathers with a paler speckled chest, large round amber-gold eyes, tufted ears, a small grey-black hooked beak and a calm, gently knowing expression; she is roughly the same height as Nibs",
+  "invariants": [
+    "soft mottled brown and buff feathers, with a distinctly paler speckled chest",
+    "large round amber-gold eyes, set forward",
+    "tufted ears",
+    "a small grey-black hooked beak",
+    "a calm, gently knowing expression rather than a wide or startled one",
+    "child-sized: roughly the same height as Nibs the squirrel",
+    "both wings and her tail fully inside the frame, never cut by an edge"
+  ],
+  "forbidden": [
+    "a snowy, white, grey or barred owl; she is mottled brown and buff",
+    "yellow, orange or black eyes; they are amber-gold",
+    "a smooth round head with no ear tufts",
+    "a large, imposing or predatory owl; she is small and child-sized",
+    "a wide-eyed startled or comic expression; her calm is the point of her",
+    "Tilly wearing clothing, glasses, a hat or accessories",
+    "a realistic or anatomically detailed bird of prey; she is a soft storybook owl",
+    "talons drawn as weapons, or any suggestion of hunting"
+  ],
+  "habit": "she settles onto a branch and tilts her head a little before she says anything",
+  "personality": "calm, curious, quietly funny",
+  "notes": [
+    "Tilly existed as reference art and a bio inside Nibs and the Absolutely Perfect",
+    "Acorn for a long time with no bible, no book and no catalog entry. She is the",
+    "only real second character in the whole library: in five of the seven original",
+    "books the companion is an unnamed glow-moth, dragonfly, hedgehog or firefly, and",
+    "Nibs is the best of them. Her existence is most of why that book works.",
+    "",
+    "Her defining move is the PUNCTURING QUESTION. In Nibs she asks 'When did you",
+    "last actually see it?' and the whole story turns on it. She never lectures, she",
+    "never solves anything, and she is usually right early and overruled. Write her",
+    "that way or she stops being Tilly.",
+    "",
+    "Her verbal tic is 'Well, now' -- an unhurried opener before she says the thing",
+    "that changes everything. She says a character's name first, then pauses.",
+    "",
+    "Her files were Tilly.png / Tilly.webp with a capital T while her id is 'tilly'.",
+    "bookCover() derives the path from the id, so she would have 404'd on Vercel the",
+    "moment she led a book. Renamed to lowercase to match every other character.",
+    "",
+    "Reference and cover are currently the SAME image, like the seven originals and",
+    "unlike Pixie, so a painted title may sit in the generation seed. If she gets a",
+    "textless sheet later, split them the way pixie.json describes."
+  ],
+  "approved": {
+    "candidate": 0,
+    "at": "2026-10-13T00:00:00.000Z"
+  }
+}

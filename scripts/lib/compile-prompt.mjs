@@ -57,7 +57,18 @@ export function styleFor(band) {
     'Rich but gentle color, soft natural light, expressive and characterful.',
     'Full-bleed HORIZONTAL composition, wider than it is tall, like the picture across the top of a picture-book page.',
     // Only the sides are trimmed, and on a narrow phone a LOT of them are.
-    `CRITICAL FRAMING: on a phone the left and right edges of this picture are cropped away, and only the middle ${Math.round(SAFE_WIDTH_FRACTION * 100)}% of its width is reliably visible. Compose the entire beat inside that central band: the characters, their wings, ears, paws and the key action must all sit within the middle of the frame, with generous background to spare on the left and the right. Treat the outer sixth of each side as scenery that will be thrown away. Use the FULL height — the top and bottom are not cropped, so no extra headroom is needed. Nothing important may touch or approach a left or right edge.`,
+    // Two separate facts, and conflating them cost two re-rolls.
+    //
+    // The SIDES get cropped on a phone, so the beat has to sit in the middle.
+    // The TOP and BOTTOM do not get cropped — but the previous wording turned
+    // that into "no extra headroom is needed", which reads as an instruction to
+    // compose tight to the top edge. It duly did: the first review of the first
+    // book written against this brief flagged two pages for an ear tip cut off
+    // by the top edge, on a render we had not cropped at all.
+    //
+    // Not cropping the top is a reason the whole character FITS, not a reason to
+    // push them against the edge.
+    `CRITICAL FRAMING: on a phone the left and right edges of this picture are cropped away, and only the middle ${Math.round(SAFE_WIDTH_FRACTION * 100)}% of its width is reliably visible. Compose the entire beat inside that central band: the characters, their wings, ears, paws and the key action must all sit within the middle of the frame, with generous background to spare on the left and the right. Treat the outer sixth of each side as scenery that will be thrown away. The top and bottom are NOT cropped, so use the full height — but every character must still be WHOLLY inside the frame with clear space above them: ear tips, tufts, horns, antennae and the tops of heads must never touch or cross the top edge, and paws and tails must never cross the bottom one. Nothing important may touch or approach any edge.`,
     'IMPORTANT: absolutely NO text, letters, words, numbers, titles, or signage lettering anywhere in the image.',
     'Keep every character EXACTLY on-model with its provided reference image: same species, same fur/feather color and pattern, same eyes, same proportions, same apparent age.',
   ].join(' ')

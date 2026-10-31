@@ -75,6 +75,37 @@ export type Series = {
 
 export const stories: Story[] = [
   {
+    id: "tillys-winter-map",
+    title: "Tilly’s Winter Map",
+    kicker: "A Storylands Original",
+    // The registrar copies the book's subtitle into both of these, and it
+    // copied the FIRST subtitle, which was a moral — "A little help leaves room
+    // for finding" — since the entry was written before that was rewritten.
+    hook: "Every nut in the clearing, and a map only Tilly can see.",
+    synopsis:
+      "Tilly the owl has watched Nibs bury nuts all autumn, and she has every hiding place mapped behind her eyes. The first frost turns the clearing into a sea of identical bumps, and Tilly cannot wait to simply tell him where everything is — until Nibs asks whether he gets to guess any. Then a branch-load of snow buries her map, and the only way left to help him is one she has to unravel her favourite blanket for.",
+    readerSlug: "tillys-winter-map",
+    // Promoted off the staging shelf: written against the strict bar, every page
+    // of its art reviewed and the two flagged pages re-rolled, prose read and
+    // judged. It also has to be here rather than on /newbooks, because it is
+    // book two of a series whose book one is published — a series that straddled
+    // the two shelves would walk a child off a reviewed book onto an unreviewed
+    // one, which the "no main-shelf book is in a series with a staging book"
+    // test exists to prevent.
+    landscape: "/characters/tilly.webp",
+    portrait: "/characters/tilly.webp",
+    ages: "Ages 4–6",
+    targetAge: 6,
+    band: "young",
+    minutes: 6,
+    genres: ["Comedy", "Heart"],
+    tags: ["funny", "heart", "cozy"],
+    seriesId: "crooked-root",
+    seriesOrder: 2,
+    glow: "oklch(0.82 0.12 74)",
+    tint: "oklch(0.34 0.05 70)",
+  },
+  {
     id: "pixies-enormous-plip",
     title: "Pixie's Enormous Plip",
     kicker: "A Storylands Original",
@@ -188,6 +219,8 @@ export const stories: Story[] = [
     minutes: 6,
     genres: ["Comedy", "Heart"],
     tags: ["funny", "heart", "quick"],
+    seriesId: "crooked-root",
+    seriesOrder: 1,
     glow: "oklch(0.82 0.12 74)",
     tint: "oklch(0.34 0.05 70)",
   },
@@ -265,6 +298,18 @@ const seriesDefs: Omit<Series, "count">[] = [
     image: "/characters/pip.webp",
     band: "young",
     glow: "oklch(0.82 0.13 68)",
+  },
+  {
+    // Named for the landmark both books turn on: the large crooked tree root in
+    // the woodland clearing where Nibs hides things and Tilly watches him do it.
+    // A place, not a character, so it can hold either of their stories — which
+    // is the mistake the Pip series made and the reason it was renamed.
+    id: "crooked-root",
+    name: "The Crooked Root",
+    tagline: "A clearing, an owl who notices, and a squirrel with standards.",
+    image: "/characters/nibs.webp",
+    band: "young",
+    glow: "oklch(0.82 0.12 74)",
   },
 ]
 

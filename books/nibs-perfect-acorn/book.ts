@@ -22,8 +22,7 @@ export type { Book, BookPage, IllustrationManifest }
 export const CHARACTER_REFS: Record<string, string> = {
   nibs:
     'characters/nibs.png',
-  tilly:
-    'characters/Tilly.png',
+  tilly: 'characters/tilly.png',
 }
 
 /** Short on-model description, written into the prompt alongside the reference. */
