@@ -40,10 +40,15 @@ piece to that bar.
 - Not gold-plating irrelevant things. Excellence is spent on what the reader actually
   experiences, not on invisible over-engineering.
 
-## Endings must land complete and happy (ages 4-7)
+## Endings must land complete and happy (every band)
 
-The final page is the thing a child is left holding. For this audience it must give real
-closure and a warm, hopeful feeling. Non-negotiable for every Storylands book:
+The final page is the thing a child is left holding. For every age Storylands writes for it
+must give real closure and a warm, hopeful feeling. Non-negotiable for every Storylands book:
+
+(Storylands now publishes four bands — babies, toddlers, 4–6 and 6–8 — defined in
+`lib/bands.ts`. The rules below hold at every one of them. A BOARD BOOK is the one shape
+where "resolve the want" does not apply, because it has no want and no plot: it closes on
+sleep or a cuddle instead, and must not have a lesson attached. See the baby band's `spine`.)
 
 - **Resolve the want.** The problem the story opened with is clearly settled by the end. No
   ambiguity, no open loops, nothing left hanging for a young child to worry about.
@@ -66,8 +71,10 @@ A Storylands book is only "done" when:
 - Every character is unmistakably on-model on every page (see visual-consistency steering).
 - No text is baked into illustrations; every page fits large with no scroll (see reader-layout).
 - The prose earns its emotion and never states the moral; the ending lands with a
-  personality-true final beat AND gives complete, happy, forward-looking closure for ages
-  4-7 (see "Endings must land complete and happy").
+  personality-true final beat AND gives complete, happy, forward-looking closure for its own
+  band (see "Endings must land complete and happy").
+- It is written against the right band, and clears that band's bar rather than a generic one.
+  `node scripts/audit-text.mjs` reports which band it judged each book as.
 - Nothing on the page feels generic, preachy, or "AI-made."
 
 If it does not clear this bar, it is not finished, and I say so.

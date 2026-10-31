@@ -95,23 +95,45 @@ controls clear the phone's home indicator.
 Because text must fit at a large size with no scroll, write picture-book pages SHORT and keep
 their length CONSISTENT so the type size stays roughly the same from page to page.
 
-Per-page word budget (measured, enforced):
-- **Target ~35 words per page.** The comfortable band is about **18-45 words**.
-- **Hard ceiling ~50 words** (and never more than 3 short paragraphs). A page over ~50 words,
-  or needing 4+ paragraphs, is TWO pages — split it. (Story Zero's original last page was 67
-  words / 4 paragraphs and overflowed on mobile; splitting it into two ~34-word pages fixed it
-  and added a dedicated final image.)
+Per-page word budget (measured, enforced) — **per age band**:
+
+The budget is NOT one set of numbers any more. `lib/bands.ts` is the single source, and
+`validateBook` reads it from the book's own `band`. Do not restate the figures anywhere else;
+read them from `bandSpec(id).words`. Roughly:
+
+| band | ages | pages | words/page | ceiling |
+|---|---|---|---|---|
+| baby | 0–2 | 8 | 3–10 | 14 |
+| toddler | 2–4 | 10 | 10–24 | 30 |
+| young | 4–6 | 13 | 18–45 | 50 |
+| middle | 6–8 | 16 | 40–72 | 85 |
+
+The `young` row is the original budget, and the reasoning behind it still applies to every
+band: a page over its ceiling, or needing more paragraphs than its band allows, is TWO pages —
+split it. (Story Zero's original last page was 67 words / 4 paragraphs and overflowed on
+mobile; splitting it into two ~34-word pages fixed it and added a dedicated final image.)
+
+A band also decides WHICH RULES APPLY, not just the numbers — whether the book needs a plot, a
+second character, dialogue, varied framing, or a refrain. A board book needs none of the first
+four and lives on the fifth. See `requires` in lib/bands.ts.
 - Keep pages within a tight range of each other. Wildly uneven pages make the auto-fit size
   jump around between turns, which feels cheap. Even, consistent lengths read premium.
 - Prefer more, shorter pages over fewer, dense ones. Turning the page is part of the rhythm,
   and a new page can earn its own illustration (maximize both text and image).
 
-Acceptance check for every book: run `node scripts/audit-text.mjs` and confirm max words ≤ ~50
-and the spread is tight. Treat "does every page fit large with no scroll, at a consistent
+Acceptance check for every book: run `node scripts/audit-text.mjs`, which checks each book
+against ITS OWN band and reports which band it judged, and confirm the spread is tight. Treat "does every page fit large with no scroll, at a consistent
 size?" as a gate, the same way we treat character visual consistency. Auto-fit is a safety
 net, not a license to overwrite a long page.
 
 ## Format
 
-- Master illustration canvas: 9:16 portrait, textless (see visual-consistency steering).
+- **Page art is 3:2 LANDSCAPE**, textless. Not 9:16 portrait, which this file said for a long
+  time: the reader shows the illustration ABOVE a text panel, in a region about 1.5 wide, so a
+  portrait master had roughly half its height thrown away — and the half it loses is where
+  heads are. `READER_ART_ASPECT` in books/types.ts and `PAGE_ASPECT` in compile-prompt.mjs.
+- **Cover art is 2:3 PORTRAIT**, textless, written by scripts/generate-cover.mjs. A cover fills
+  the whole 9:16 stage and is shown as a 9:16 card on every shelf, so it is the one place
+  portrait is right. Textless because the reader draws the title over it; the seven original
+  covers have their title painted in and `bookCoverArt` has to suppress the HTML title for them.
 - Reader stage is centered and letterboxed on wide screens, full-bleed on phones.

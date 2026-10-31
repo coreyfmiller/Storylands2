@@ -114,12 +114,20 @@ reintroduces it.
 
 ## Format and output rules
 
-- Story-page master canvas: 9:16 portrait, 1080x1920, full-bleed, sRGB.
-- ABSOLUTE: the reader displays page art full-bleed with `object-cover`, which CROPS to fill.
-  So keep ALL important content — heads, ears, faces, the key action — well inside a central
-  safe zone with generous margin/headroom; nothing important near any edge. Assume the top and
-  bottom edges may be cropped. A subject touching an edge is a defect (it will clip). If a
-  generated page clips, regenerate it with more margin — never letterbox the reader instead.
+- **Story-page master canvas: 3:2 LANDSCAPE, 1536x1024, full-bleed, sRGB.** This said 9:16
+  portrait, 1080x1920, for a long time and that was an assumption rather than a measurement:
+  the reader shows page art in a region about 1.5 wide above the text panel, so a portrait
+  master lost roughly half its height, and the half it loses is where heads are.
+- **Cover master: 2:3 portrait**, because a cover fills the whole 9:16 stage. Different from
+  pages on purpose. See scripts/generate-cover.mjs.
+- ABSOLUTE: the reader displays page art with `object-cover`, which CROPS to fill. Only the
+  LEFT AND RIGHT are trimmed, and on a narrow phone a lot of them are — roughly a third of the
+  width goes. Compose the whole beat inside the central ~68% (`SAFE_WIDTH_FRACTION`).
+  The top and bottom are NOT cropped. That is a reason the whole character fits, **not** a
+  reason to push them against the top edge: this file used to be read as "no headroom needed"
+  and the first landscape books came back with ear tips sliced off by the top of the frame.
+  Every character must be wholly inside the picture with clear space above them.
+- If a generated page clips, regenerate it with more margin — never letterbox the reader.
 - Interiors are TEXTLESS and SIGNAGE-FREE (see the hard rule above). Story words are an
   overlay layer, never painted into the image; no signs/labels even when blank.
 - Character reference sheets are textless on a plain background.

@@ -44,16 +44,31 @@ The hard rules, in order of how badly they hurt:
 3. ON-MODEL. The character must match the reference image given to you: same species, same fur or feather colour and pattern, same eyes, same proportions, same apparent age, same clothing or accessory if it has one.
 4. NOTHING CLIPPED. This image is already the final crop; the reader displays it as-is and will not cut it further. So judge what you can see: is any important thing — a head, an ear, a paw, a tail, the key action — cut off by the edge of this picture, or jammed so tight against an edge that it looks like an accident? A subject deliberately running out of frame for composition is fine; a head with its top sliced off is not.
    Read this against the page's shotType, which you are given. A "detail" shot is SUPPOSED to hold an object large with the character only partly in frame, so a character cropped at the waist or shoulder on a detail shot is the brief being followed and is not a problem. What is always a problem, on any shot type, is a small piece missing from an otherwise complete character: one ear tip, one horn, one antenna, the very top of a head. That reads as an accident rather than a choice, and it is the thing to flag.
-5. THE BRIEF. The required facts should be present and the forbidden ones absent.
+5. THE RIGHT CAST, AND THE RIGHT STATE OF THINGS. Two things here are failures, not details:
+   (a) Exactly the listed characters appear — no extra one, and none missing. A second copy of a character is the common form of this, and it is always wrong: a book where the friend appears on a page before they arrive loses the arrival the whole story turns on.
+   (b) An object the brief says is BROKEN, crushed, torn, melted, emptied or used up must look that way. Picture-book stories turn on a cost being real, and art that quietly keeps the thing intact deletes the cost. If the brief says five windows are shattered and the lantern will never shine again, a whole glowing lantern is a failure and not a nitpick.
 
-Keep the two kinds of problem apart. Rules 1 to 4 are failures: they make the book wrong and the page has to be drawn again. Rule 5 is usually a detail — a droplet in a slightly different place, two characters looking at each other rather than at a leaf, a prop smaller than described. Put those in the notes field, not the problems field, and do not let them set the verdict. Only answer "reroll" when one of rules 1 to 4 is broken.
+6. THE REST OF THE BRIEF. Other required facts present, forbidden ones absent.
+
+Keep the two kinds of problem apart. Rules 1 to 5 are failures: they make the book wrong and the page has to be drawn again. Rule 6 is usually a detail — a droplet in a slightly different place, two characters looking at each other rather than at a leaf, a prop smaller than described. Put those in the notes field, not the problems field, and do not let them set the verdict. Only answer "reroll" when one of rules 1 to 5 is broken.
 
 Be concise. One short sentence per problem.`
 
 const schema = {
   type: 'object',
   additionalProperties: false,
-  required: ['verdict', 'hasText', 'hasSignage', 'onModel', 'safeArea', 'problems', 'notes', 'note'],
+  required: [
+    'verdict',
+    'hasText',
+    'hasSignage',
+    'onModel',
+    'safeArea',
+    'rightCast',
+    'rightState',
+    'problems',
+    'notes',
+    'note',
+  ],
   properties: {
     verdict: {
       type: 'string',
@@ -67,10 +82,20 @@ const schema = {
       type: 'boolean',
       description: 'true when nothing important is clipped or jammed against an edge',
     },
+    rightCast: {
+      type: 'boolean',
+      description:
+        'true when exactly the listed characters appear: none missing, and no extra or duplicated character',
+    },
+    rightState: {
+      type: 'boolean',
+      description:
+        'true when anything the brief says is broken, crushed, torn, melted or used up actually looks that way',
+    },
     problems: {
       type: 'array',
       items: { type: 'string' },
-      description: 'Only breaches of rules 1-4. These force a re-roll.',
+      description: 'Only breaches of rules 1-5. These force a re-roll.',
     },
     notes: {
       type: 'array',
@@ -183,10 +208,23 @@ async function reviewBook(slug) {
         r.hasSignage ? 'SIGNAGE' : '',
         !r.onModel ? 'OFF-MODEL' : '',
         !r.safeArea ? 'CLIPPED' : '',
+        // Added after Lumi and the Frozen River came back with eleven of
+        // thirteen pages passing and the book's entire cost deleted. Page 10 is
+        // where she crushes her own star lantern into a hook — "five blue
+        // windows crunched", "would never shine again" — and the art showed it
+        // whole and brightly glowing. Page 4 had a second Pip on it, one page
+        // before Pip arrives. Both were filed as NOTES, because the hard rules
+        // were text, signage, off-model and clipping, and neither of those is
+        // either of these.
+        //
+        // A clipped ear tip is a blemish. A cost the story paid and the picture
+        // quietly refunded is the book not working.
+        r.rightCast === false ? 'WRONG-CAST' : '',
+        r.rightState === false ? 'NOT-BROKEN' : '',
       ].filter(Boolean)
 
-      // Only the four hard rules force a re-roll. A droplet in the wrong place
-      // is not worth a dollar and a new composition.
+      // Only the hard rules force a re-roll. A droplet in the wrong place is
+      // not worth a dollar and a new composition.
       if (flags.length) {
         bad.push(page.page)
         console.log(`  page ${page.page}: REROLL  ${flags.join(' ')}`)
