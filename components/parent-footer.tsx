@@ -1,7 +1,8 @@
 import { Logo } from "@/components/logo"
-import { MAX_AGE, MIN_AGE } from "@/lib/readers"
+import { publishedAges } from "@/lib/readers"
 
 export function ParentFooter() {
+  const published = publishedAges()
   return (
     <>
       {/* Editorial parchment moment — a quiet promise to parents */}
@@ -37,8 +38,8 @@ export function ParentFooter() {
           <div className="max-w-sm">
             <Logo />
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              Original illustrated picture books for ages {MIN_AGE} to {MAX_AGE}, read a page
-              at a time.
+              Original illustrated picture books for ages {published.min} to {published.max},
+              read a page at a time.
             </p>
           </div>
           {/* There were eleven links here across three columns — Discover, Ages,

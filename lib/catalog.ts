@@ -1,4 +1,5 @@
 import type { BandId } from "./bands"
+import { BANDS, BAND_ORDER } from "./bands.ts"
 
 /**
  * The age band a story belongs to.
@@ -433,6 +434,32 @@ export function poolForBands(bands: Band[]): Story[] {
 
 export function shouldUseRichShelves(bands: Band[]): boolean {
   return poolForBands(bands).length >= RICH_SHELVES_THRESHOLD
+}
+
+/**
+ * The bands that actually contain a readable book, youngest first.
+ *
+ * The band machinery describes four kinds of book; only the ones with books in
+ * them may be offered to a reader. Adding the three new bands immediately broke
+ * this: `bandsForAge` started resolving a two-year-old to [baby, toddler], both
+ * empty, so a child who previously saw the whole library saw nothing at all.
+ *
+ * Derived, never written down — the moment the first board book ships, the baby
+ * band turns on by itself and no second list needs editing.
+ */
+export function bandsWithBooks(): Band[] {
+  const have = new Set(mainShelf().filter((s) => s.readerSlug).map((s) => s.band))
+  return BAND_ORDER.filter((b) => have.has(b))
+}
+
+/** The ages Storylands actually publishes for, derived from bands that have books. */
+export function publishedAgeRange(): { min: number; max: number } {
+  const bands = bandsWithBooks()
+  if (bands.length === 0) return { min: 0, max: 0 }
+  return {
+    min: Math.min(...bands.map((b) => BANDS[b].ages[0])),
+    max: Math.max(...bands.map((b) => BANDS[b].ages[1])),
+  }
 }
 
 /**

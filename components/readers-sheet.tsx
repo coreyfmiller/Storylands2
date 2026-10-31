@@ -6,6 +6,7 @@ import { useReaders } from "@/components/providers/reader-provider"
 import {
   MAX_AGE,
   MIN_AGE,
+  publishedAges,
   NAME_MAX,
   colourOf,
   initialOf,
@@ -144,6 +145,7 @@ function AddForm({
   const [name, setName] = useState("")
   const [age, setAge] = useState("")
   const [touched, setTouched] = useState(false)
+  const published = publishedAges()
 
   const problem = readerProblem({ name, age: Number(age) })
   const empty = name.trim() === "" && age === ""
@@ -200,8 +202,12 @@ function AddForm({
           {problem}
         </p>
       )}
+      {/* The ages PUBLISHED, not the ages the field accepts. Those are two
+          different facts, and using MIN_AGE/MAX_AGE here claimed books for
+          ages 0 to 12 on a library written for 4 to 6. */}
       <p className="mt-3 text-xs text-muted-foreground">
-        Storylands books are written for ages {MIN_AGE} to {MAX_AGE}.
+        Storylands books are written for ages {published.min} to {published.max}. Any age can
+        have a profile.
       </p>
     </form>
   )

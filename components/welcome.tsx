@@ -4,7 +4,7 @@ import Image from "next/image"
 import { stories, thumbOf } from "@/lib/catalog"
 import { Logo } from "@/components/logo"
 import { useReaders } from "@/components/providers/reader-provider"
-import { MAX_AGE, MIN_AGE, NAME_MAX, readerProblem } from "@/lib/readers"
+import { MAX_AGE, MIN_AGE, NAME_MAX, publishedAges, readerProblem } from "@/lib/readers"
 import { useState } from "react"
 
 // The first screen, before anybody has been added.
@@ -14,6 +14,7 @@ import { useState } from "react"
 // had read. One name and one age replaces all of that.
 
 export function Welcome() {
+  const published = publishedAges()
   const { addReader } = useReaders()
   const [name, setName] = useState("")
   const [age, setAge] = useState("")
@@ -40,9 +41,9 @@ export function Welcome() {
           Illustrated picture books, read a page at a time.
         </h1>
         <p className="mt-5 text-pretty text-lg leading-relaxed text-muted-foreground">
-          {covers.length} original stories for ages {MIN_AGE} to {MAX_AGE}, hand-illustrated,
-          with every word read aloud if you want it. No ads, no feed, and every story has a
-          last page to arrive at.
+          {covers.length} original stories for ages {published.min} to {published.max},
+          hand-illustrated, with every word read aloud if you want it. No ads, no feed, and
+          every story has a last page to arrive at.
         </p>
 
         <div className="mt-8 flex gap-2" aria-hidden>

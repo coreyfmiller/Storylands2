@@ -8,9 +8,11 @@ import assert from 'node:assert/strict'
 import { books, bookSlugs, bookBySlug } from '../../books/index.ts'
 import { bookCoverArt, describePage, pageArt, PAGE_EXT } from '../../books/types.ts'
 import {
+  bandsWithBooks,
   mainShelf,
   newShelf,
   nextInSeries,
+  poolForBands,
   series,
   seriesById,
   seriesPosition,
@@ -19,6 +21,8 @@ import {
   storyByReaderSlug,
   thumbOf,
 } from '../catalog.ts'
+import { MAX_AGE, MIN_AGE, bandsForAge, publishedAges } from '../readers.ts'
+import { BANDS } from '../bands.ts'
 
 describe('the book registry', () => {
   test('every slug resolves to a book', () => {
@@ -223,5 +227,50 @@ describe('thumbnails', () => {
 
   test('leave an unknown path alone rather than inventing one', () => {
     assert.equal(thumbOf('/logo.png'), '/logo.png')
+  })
+})
+
+describe('no age is shown an empty library', () => {
+  // Adding the baby, toddler and middle bands broke this instantly: a
+  // two-year-old resolved to [baby, toddler], both empty, so a child who had
+  // been able to open seven books could open none. An age mapping that is
+  // honest about the age ranges is still wrong if it hands back nothing.
+  test('every allowed age can see at least one book', () => {
+    for (let age = MIN_AGE; age <= MAX_AGE; age++) {
+      const bands = bandsForAge(age)
+      assert.ok(bands.length > 0, `age ${age} maps to no band at all`)
+      assert.ok(
+        poolForBands(bands).length > 0,
+        `age ${age} sees an empty library (bands: ${bands.join(', ')})`,
+      )
+    }
+  })
+
+  test('a reader is only ever offered bands that have books', () => {
+    const available = bandsWithBooks()
+    for (let age = MIN_AGE; age <= MAX_AGE; age++) {
+      for (const b of bandsForAge(age)) {
+        assert.ok(available.includes(b), `age ${age} offered the empty "${b}" band`)
+      }
+    }
+  })
+
+  test('bandsWithBooks is derived from the catalog, not written down', () => {
+    const declared = new Set(mainShelf().filter((s) => s.readerSlug).map((s) => s.band))
+    assert.deepEqual(new Set(bandsWithBooks()), declared)
+  })
+
+  test('the stated age range matches the bands that have books', () => {
+    // The UI may only claim ages it actually publishes for. MIN_AGE went to 0
+    // for the baby band and three screens immediately began promising "ages 0
+    // to 12" on a library written entirely for 4 to 6.
+    const { min, max } = publishedAges()
+    const bands = bandsWithBooks()
+    assert.ok(bands.length > 0, 'expected at least one band with books')
+    assert.equal(min, Math.min(...bands.map((b) => BANDS[b].ages[0])))
+    assert.equal(max, Math.max(...bands.map((b) => BANDS[b].ages[1])))
+    // And it must be narrower than what a profile accepts, or the two facts
+    // have been conflated again.
+    assert.ok(min >= MIN_AGE && max <= MAX_AGE)
   })
 })
