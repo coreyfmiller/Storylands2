@@ -227,9 +227,13 @@ export const stories: Story[] = [
     id: "pip",
     title: "Pip and the First Flame",
     kicker: "A Storylands Original",
-    hook: "A small dragon with a big heart, whose flame hasn't arrived yet.",
+    // Rewritten at the strict bar. The previous entry described the previous
+    // book and stated its moral outright — "the warmest flames don't come from
+    // trying harder, they come from a big heart" — which was both a sermon and,
+    // after the rewrite, a description of a story that no longer exists.
+    hook: "A little lantern with a very grand tail.",
     synopsis:
-      "It's the night of the Lantern Festival, when every dragon lights a lantern with their own fire. Every dragon but Pip, who can only make smoke. But when Pip finds someone small and frightened in the dark, he discovers that the warmest flames don't come from trying harder — they come from a big heart.",
+      "Pip has spent all week dressing his tin lantern as a magnificent golden dragon, and tonight every dragon lights a lantern with their own fire. Pip can only make smoke. His plan to carry a hot coal from the bakehouse and blow it into one enormous flame survives exactly as far as the middle of the bridge — and what finally lights his candle is the one piece of the dragon that came through the wreck untouched.",
     readerSlug: "pip-first-flame",
     character: "pip",
     landscape: "/characters/pip.webp",
